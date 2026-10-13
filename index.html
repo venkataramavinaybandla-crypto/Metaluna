@@ -88,12 +88,15 @@
 <div class="relative aspect-[16/9] w-full rounded-[36px] bg-surface-container-lowest/90 backdrop-blur-3xl shadow-[inset_0_1px_2px_rgba(255,255,255,0.24),0_32px_80px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
 <!-- Brushed Titanium Inner Bezel Rim -->
 <div class="absolute inset-4 rounded-[28px] bg-surface-container-high/30 shadow-[inset_0_0_80px_rgba(0,0,0,0.85)] flex items-center justify-center overflow-hidden">
-<!-- Photorealistic Liquid Metallic Swirl Canvas Placeholder -->
-<div class="absolute inset-0 bg-cover bg-center mix-blend-screen opacity-90" role="img" aria-label="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." data-alt="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." style="background-image: url('assets/images/hero-liquid-basin.jpg')"></div>
+<!-- Interactive WebGL Molten Metal Canvas -->
+<canvas id="mixer-canvas" class="absolute inset-0 w-full h-full object-cover hidden z-0" tabindex="0" aria-label="Interactive molten metal basin. Use arrow keys to move cursor, Space to pour selected alloy, Enter on drops to pour."></canvas>
+<div id="mixer-keyboard-cursor" class="hidden" aria-hidden="true"></div>
+<!-- Photorealistic Liquid Metallic Swirl Canvas Placeholder Fallback -->
+<div id="hero-fallback-image" class="absolute inset-0 bg-cover bg-center mix-blend-screen opacity-90 transition-opacity duration-700" role="img" aria-label="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." data-alt="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." style="background-image: url('assets/images/hero-liquid-basin.jpg')"></div>
 <!-- Liquid Caustics & Reflection Overlay Gradient -->
-<div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-surface-container-lowest/80"></div>
+<div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-surface-container-lowest/80 z-0"></div>
 <!-- SVG Fluid Specular Vector Graphic Overlay -->
-<svg class="absolute inset-0 w-full h-full pointer-events-none" fill="none" preserveaspectratio="xMidYMid slice" viewbox="0 0 1000 562">
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0" fill="none" preserveaspectratio="xMidYMid slice" viewbox="0 0 1000 562">
 <defs>
 <lineargradient id="lilacFluid" x1="0%" x2="100%" y1="0%" y2="100%">
 <stop offset="0%" stop-color="#D6CEFF" stop-opacity="0.9"></stop>
@@ -123,40 +126,50 @@
 <!-- Interactive Center Focal Point Nodes -->
 <div class="relative z-10 flex items-center justify-center gap-space-sm sm:gap-space-lg">
 <!-- Molten Lilac Drop Indicator -->
-<div class="flex flex-col items-center group cursor-pointer">
+<button type="button" class="hero-alloy-drop flex flex-col items-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-1" data-alloy-id="0" aria-label="Pour Lilac alloy">
 <div class="w-16 h-16 rounded-full bg-gradient-to-br from-tertiary-fixed via-primary-container to-on-primary-fixed shadow-[0_0_28px_#a89cf2,inset_0_1px_2px_#ffffff] transform group-hover:scale-110 transition-transform flex items-center justify-center">
 <span class="w-4 h-4 rounded-full bg-surface-container-lowest/60 backdrop-blur-md"></span>
 </div>
-<span class="mt-space-xs font-label-caps text-label-caps uppercase text-primary-fixed tracking-widest">Lilac 38%</span>
-</div>
+<span id="drop-pct-lilac" class="mt-space-xs font-label-caps text-label-caps uppercase text-primary-fixed tracking-widest">Lilac 38%</span>
+</button>
 <!-- Molten Snow Alloy Drop Indicator -->
-<div class="flex flex-col items-center group cursor-pointer -mt-space-md">
+<button type="button" class="hero-alloy-drop flex flex-col items-center group cursor-pointer -mt-space-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-1" data-alloy-id="1" aria-label="Pour Snow alloy">
 <div class="w-20 h-20 rounded-full bg-gradient-to-b from-white via-tertiary-fixed to-outline-variant shadow-[0_0_36px_#f6f7ff,inset_0_1px_3px_#ffffff] transform group-hover:scale-110 transition-transform flex items-center justify-center">
 <span class="w-6 h-6 rounded-full bg-surface-container-lowest/70 backdrop-blur-md"></span>
 </div>
-<span class="mt-space-xs font-label-caps text-label-caps uppercase text-on-surface tracking-widest">Snow 42%</span>
-</div>
+<span id="drop-pct-snow" class="mt-space-xs font-label-caps text-label-caps uppercase text-on-surface tracking-widest">Snow 42%</span>
+</button>
 <!-- Molten Glaucous Drop Indicator -->
-<div class="flex flex-col items-center group cursor-pointer">
+<button type="button" class="hero-alloy-drop flex flex-col items-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-1" data-alloy-id="2" aria-label="Pour Glaucous alloy">
 <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-on-secondary-fixed via-secondary to-secondary-fixed shadow-[0_0_28px_#7c93c9,inset_0_1px_2px_#ffffff] transform group-hover:scale-110 transition-transform flex items-center justify-center">
 <span class="w-4 h-4 rounded-full bg-surface-container-lowest/60 backdrop-blur-md"></span>
 </div>
-<span class="mt-space-xs font-label-caps text-label-caps uppercase text-secondary-fixed tracking-widest">Glaucous 20%</span>
-</div>
+<span id="drop-pct-glaucous" class="mt-space-xs font-label-caps text-label-caps uppercase text-secondary-fixed tracking-widest">Glaucous 20%</span>
+</button>
 </div>
 <!-- Floating Telemetry Glass Badges -->
-<div class="absolute bottom-6 left-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)]">
+<div class="absolute bottom-6 left-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] z-10">
 <span class="material-symbols-outlined text-primary text-[16px]">waves</span>
-<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Viscosity: <strong class="text-on-surface">0.84 P</strong></span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Viscosity: <strong id="hud-viscosity" class="text-on-surface">0.84 P</strong></span>
 </div>
-<div class="absolute top-6 left-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)]">
+<div class="absolute top-6 left-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] z-10">
 <span class="material-symbols-outlined text-secondary text-[16px]">flare</span>
-<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Specular Roughness: <strong class="text-on-surface">0.04</strong></span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Specular Roughness: <strong id="hud-roughness" class="text-on-surface">0.04</strong></span>
 </div>
-<div class="absolute bottom-6 right-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)]">
+<div class="absolute bottom-6 right-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] z-10">
 <span class="material-symbols-outlined text-primary-fixed text-[16px]">verified</span>
-<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Alloy Purity: <strong class="text-on-surface">99.8%</strong></span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Blend Balance: <strong id="hud-purity" class="text-on-surface">99.8%</strong></span>
 </div>
+<!-- Hero Mixer Action Controls (Reset & Copy Blend Token) -->
+<div id="hero-mixer-controls" class="absolute top-6 right-6 hidden md:flex items-center gap-space-xs z-20">
+<button id="mixer-reset-btn" type="button" class="px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-on-surface bg-surface-container-lowest/80 hover:bg-surface-container-high backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] transition-all">Reset</button>
+<button id="mixer-copy-blend-btn" type="button" class="px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-primary-fixed bg-surface-container-lowest/80 hover:bg-surface-container-high backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] transition-all flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">content_copy</span><span>Copy Blend Token</span></button>
+</div>
+</div>
+<!-- Mobile Mixer Actions (< md) -->
+<div class="flex md:hidden items-center justify-center gap-space-sm mt-space-md z-10">
+<button onclick="document.getElementById('mixer-reset-btn')?.click()" type="button" class="px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-on-surface bg-surface-container-high/60 backdrop-blur-md shadow-sm">Reset</button>
+<button onclick="document.getElementById('mixer-copy-blend-btn')?.click()" type="button" class="px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-primary-fixed bg-surface-container-high/60 backdrop-blur-md shadow-sm flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">content_copy</span><span>Copy Blend Token</span></button>
 </div>
 </div>
 </div>
@@ -517,5 +530,6 @@
 </div>
 </section>
 </div></main><footer class="w-full bg-surface-container-lowest"><div class="w-full px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-space-xl pb-space-xl"><div class="lg:col-span-2 space-y-space-md"><div class="flex items-center gap-space-sm"><img alt="Metalune Emblem" class="h-7 w-auto object-contain" src="assets/images/metalune-emblem.png"/><span class="font-headline-sm text-headline-sm uppercase tracking-widest text-on-surface">Metalune</span></div><p class="font-body-sm text-body-sm text-on-surface-variant max-w-sm">Mix a material. Ship a brand. Haute-couture material architecture engineered for quiet luxury, tactile presence, and sovereign brand formulations.</p><div class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high shadow-[inset_0_1px_1px_0_rgba(246,247,255,0.08)]"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Engine v2.4 Active</span></div></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Platform</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Substrate Studio</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Specular Light Lab</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Export Matrices</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Color Science</li></ul></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Finishes</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Lilac Alloy</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Glaucous Specular</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Obsidian Glass</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Snow Luster</li></ul></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Resources</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Material Gazette</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">API Documentation</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Brand Tokens</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Case Studies</li></ul></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Company</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Atelier</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Manifesto</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Concierge</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Privacy &amp; Terms</li></ul></div></div><div class="pt-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-md"><span class="font-label-sm text-label-sm text-on-surface-variant">© 2025 Metalune Atelier Inc. All rights reserved.</span><div class="flex items-center gap-space-lg"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase hover:text-on-surface cursor-pointer">Legal</span><span class="font-label-caps text-label-caps text-on-surface-variant uppercase hover:text-on-surface cursor-pointer">Security</span><span class="font-label-caps text-label-caps text-on-surface-variant uppercase hover:text-on-surface cursor-pointer">Atelier Portal</span></div></div></div></footer><script src="js/app.js"></script>
+<script defer src="js/mixer.js"></script>
 </body>
 </html>
