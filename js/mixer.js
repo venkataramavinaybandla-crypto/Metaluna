@@ -648,15 +648,13 @@
   let isPointerDown = false;
   let didMoveSignificantly = false;
   let pointerStartPos = { x: 0, y: 0 };
+  canvas.style.touchAction = 'pan-y';
 
   canvas.addEventListener('pointerdown', (e) => {
     isPointerDown = true;
     didMoveSignificantly = false;
     pointerStartPos = { x: e.clientX, y: e.clientY };
     lastPointerPos = { x: e.clientX, y: e.clientY, time: performance.now() };
-
-    // Prevent page scroll trapping only while interacting with canvas
-    canvas.style.touchAction = 'none';
   });
 
   window.addEventListener('pointermove', (e) => {
@@ -668,6 +666,7 @@
 
     if (distFromStart > 6) {
       didMoveSignificantly = true;
+      canvas.style.touchAction = 'none';
     }
 
     // Add swirl stir momentum
@@ -685,10 +684,10 @@
     lastPointerPos = { x: e.clientX, y: e.clientY, time: now };
   });
 
-  window.addEventListener('pointerup', (e) => {
+  function handlePointerEnd(e) {
     if (!isPointerDown) return;
     isPointerDown = false;
-    canvas.style.touchAction = '';
+    canvas.style.touchAction = 'pan-y';
 
     // If it was a click (not a stir drag), pour the selected alloy!
     if (!didMoveSignificantly) {
@@ -703,6 +702,12 @@
         pourAlloy(normX, normY, selectedAlloyId);
       }
     }
+  }
+
+  window.addEventListener('pointerup', handlePointerEnd);
+  window.addEventListener('pointercancel', () => {
+    isPointerDown = false;
+    canvas.style.touchAction = 'pan-y';
   });
 
   // --- KEYBOARD ACCESSIBILITY ON CANVAS ---

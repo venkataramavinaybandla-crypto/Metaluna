@@ -108,7 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
         closeMobileMenu();
       });
     });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 1024 && mobileMenu.classList.contains('menu-open')) {
+        closeMobileMenu();
+      }
+    });
   }
+  document.body.style.overflow = '';
 
   // ----------------------------------------------------
   // 4. Smooth Scroll Navigation for Anchor Links
