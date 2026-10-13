@@ -437,12 +437,6 @@
 
   // Reveal canvas and mixer controls now that WebGL is operational
   canvas.classList.remove('hidden');
-  if (fallbackImg) {
-    fallbackImg.style.opacity = '0';
-    setTimeout(() => {
-      fallbackImg.style.display = 'none';
-    }, 700);
-  }
   if (mixerControls) mixerControls.classList.remove('hidden');
 
   // Full-screen Quad Setup
@@ -928,6 +922,7 @@
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
     console.warn('WebGL context lost. Pausing renderer and restoring visual fallback.');
+    canvas.classList.remove('canvas-visible');
     if (fallbackImg) fallbackImg.style.display = 'block';
   });
 
@@ -937,7 +932,8 @@
       ? createProgram(gl, vsSourceWebGL2, fsSourceWebGL2)
       : createProgram(gl, vsSourceWebGL1, fsSourceWebGL1);
     resizeCanvas();
-    if (fallbackImg) fallbackImg.style.display = 'none';
+    hasRenderedFirstFrame = false;
+    renderSingleFrame();
   });
 
   // --- MAIN RENDER LOOP ---
@@ -973,9 +969,15 @@
     gl.uniform4fv(uPoursLoc, pourData);
   }
 
+  let hasRenderedFirstFrame = false;
+
   function renderSingleFrame() {
     uploadUniforms(performance.now());
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    if (!hasRenderedFirstFrame) {
+      hasRenderedFirstFrame = true;
+      canvas.classList.add('canvas-visible');
+    }
   }
 
   function frameLoop(now) {

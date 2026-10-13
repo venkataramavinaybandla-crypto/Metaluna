@@ -239,7 +239,13 @@ html.js .blend-bar-animated {
 #mixer-canvas {
   touch-action: pan-y;
   cursor: crosshair;
-  transition: opacity 0.5s ease-in-out;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  border-radius: 28px;
+}
+
+#mixer-canvas.canvas-visible {
+  opacity: 1;
 }
 
 #mixer-canvas:focus-visible {
@@ -248,8 +254,22 @@ html.js .blend-bar-animated {
 }
 
 .hero-alloy-drop {
+  position: relative;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  overflow: visible !important;
+}
+
+.hero-alloy-drop span[id^="drop-pct-"] {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  white-space: nowrap;
+  overflow: visible;
+  text-align: center;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
 }
 
 .hero-alloy-drop.drop-selected > div:first-child {
@@ -331,6 +351,7 @@ html.js .blend-bar-animated {
   .hero-alloy-drop {
     min-height: 44px;
     padding: 2px !important;
+    overflow: visible !important;
   }
 
   .hero-alloy-drop > div:first-child {
@@ -341,6 +362,14 @@ html.js .blend-bar-animated {
     font-size: 0.625rem !important;
     letter-spacing: 0.04em !important;
     white-space: nowrap !important;
+    width: max-content !important;
+    overflow: visible !important;
+    text-align: center !important;
+    position: relative !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    text-overflow: clip !important;
+    font-variant-numeric: tabular-nums !important;
   }
 }
 

@@ -87,12 +87,14 @@
 <div class="relative z-10 w-full max-w-5xl mt-space-md">
 <div class="relative aspect-[16/9] w-full rounded-[36px] bg-surface-container-lowest/90 backdrop-blur-3xl shadow-[inset_0_1px_2px_rgba(255,255,255,0.24),0_32px_80px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
 <!-- Brushed Titanium Inner Bezel Rim -->
-<div class="absolute inset-4 rounded-[28px] bg-surface-container-high/30 shadow-[inset_0_0_80px_rgba(0,0,0,0.85)] flex items-center justify-center overflow-hidden">
-<!-- Interactive WebGL Molten Metal Canvas -->
-<canvas id="mixer-canvas" class="absolute inset-0 w-full h-full object-cover hidden z-0" tabindex="0" aria-label="Interactive molten metal basin. Use arrow keys to move cursor, Space to pour selected alloy, Enter on drops to pour."></canvas>
-<div id="mixer-keyboard-cursor" class="hidden" aria-hidden="true"></div>
+<div class="absolute inset-4 rounded-[28px] bg-surface-container-high/30 shadow-[inset_0_0_80px_rgba(0,0,0,0.85)] flex items-center justify-center">
 <!-- Photorealistic Liquid Metallic Swirl Canvas Placeholder Fallback -->
-<div id="hero-fallback-image" class="absolute inset-0 bg-cover bg-center mix-blend-screen opacity-90 transition-opacity duration-700" role="img" aria-label="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." data-alt="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." style="background-image: url('assets/images/hero-liquid-basin.jpg')"></div>
+<div id="hero-fallback-image" class="absolute inset-0 bg-cover bg-center mix-blend-screen opacity-90 transition-opacity duration-700 rounded-[28px]" role="img" aria-label="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." data-alt="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." style="background-image: url('assets/images/hero-liquid-basin.jpg')">
+<div class="absolute inset-0 bg-[rgba(13,12,18,0.45)] pointer-events-none rounded-[28px]" aria-hidden="true"></div>
+</div>
+<!-- Interactive WebGL Molten Metal Canvas -->
+<canvas id="mixer-canvas" class="absolute inset-0 w-full h-full object-cover hidden z-0 rounded-[28px]" tabindex="0" aria-label="Interactive molten metal basin. Use arrow keys to move cursor, Space to pour selected alloy, Enter on drops to pour."></canvas>
+<div id="mixer-keyboard-cursor" class="hidden" aria-hidden="true"></div>
 <!-- Liquid Caustics & Reflection Overlay Gradient -->
 <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-surface-container-lowest/80 z-0"></div>
 <!-- SVG Fluid Specular Vector Graphic Overlay -->
