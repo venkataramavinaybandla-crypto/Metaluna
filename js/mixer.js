@@ -829,6 +829,66 @@
     copyBlendBtn.addEventListener('click', copyBlendToken);
   }
 
+  // --- MOBILE KEBAB MENU (<768px) ---
+  const kebabBtn = document.getElementById('mixer-kebab-btn');
+  const kebabDropdown = document.getElementById('mixer-mobile-dropdown');
+  const mobileResetBtn = document.getElementById('mobile-mixer-reset-btn');
+  const mobileCopyBtn = document.getElementById('mobile-mixer-copy-btn');
+
+  function closeKebabMenu() {
+    if (!kebabDropdown) return;
+    kebabDropdown.classList.add('hidden');
+    kebabDropdown.classList.remove('flex');
+    if (kebabBtn) kebabBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openKebabMenu() {
+    if (!kebabDropdown) return;
+    kebabDropdown.classList.remove('hidden');
+    kebabDropdown.classList.add('flex');
+    if (kebabBtn) kebabBtn.setAttribute('aria-expanded', 'true');
+  }
+
+  if (kebabBtn && kebabDropdown) {
+    kebabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !kebabDropdown.classList.contains('hidden');
+      if (isOpen) {
+        closeKebabMenu();
+      } else {
+        openKebabMenu();
+      }
+    });
+
+    if (mobileResetBtn) {
+      mobileResetBtn.addEventListener('click', () => {
+        closeKebabMenu();
+        if (resetBtn) resetBtn.click();
+      });
+    }
+
+    if (mobileCopyBtn) {
+      mobileCopyBtn.addEventListener('click', () => {
+        closeKebabMenu();
+        if (copyBlendBtn) copyBlendBtn.click();
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!kebabDropdown.classList.contains('hidden') && !kebabDropdown.contains(e.target) && !kebabBtn.contains(e.target)) {
+        closeKebabMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !kebabDropdown.classList.contains('hidden')) {
+        e.stopPropagation();
+        closeKebabMenu();
+        kebabBtn.focus();
+      }
+    });
+  }
+
   // --- RESIZE & DPR HANDLING ---
   function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();

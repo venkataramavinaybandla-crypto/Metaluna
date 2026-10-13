@@ -165,11 +165,20 @@
 <button id="mixer-reset-btn" type="button" class="px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-on-surface bg-surface-container-lowest/80 hover:bg-surface-container-high backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] transition-all">Reset</button>
 <button id="mixer-copy-blend-btn" type="button" class="px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-primary-fixed bg-surface-container-lowest/80 hover:bg-surface-container-high backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] transition-all flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">content_copy</span><span>Copy Blend Token</span></button>
 </div>
+<!-- Mobile Kebab Menu (< md) -->
+<div class="absolute top-4 right-4 md:hidden z-20">
+<button id="mixer-kebab-btn" type="button" class="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#F6F7FF] text-[#0D0C12] shadow-md flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-95" aria-label="Blend actions menu" aria-haspopup="menu" aria-expanded="false" aria-controls="mixer-mobile-dropdown">
+<svg class="w-5 h-5" viewBox="0 0 24 24" fill="#0D0C12" aria-hidden="true">
+<circle cx="12" cy="5" r="1.75"></circle>
+<circle cx="12" cy="12" r="1.75"></circle>
+<circle cx="12" cy="19" r="1.75"></circle>
+</svg>
+</button>
+<div id="mixer-mobile-dropdown" class="hidden absolute right-0 top-12 mt-1 min-w-[180px] rounded-[28px] bg-surface-container-lowest/95 backdrop-blur-2xl border border-[rgba(214,206,255,0.2)] shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(246,247,255,0.15)] p-2 z-30 flex-col gap-1" role="menu" aria-label="Blend actions">
+<button id="mobile-mixer-reset-btn" type="button" role="menuitem" class="w-full text-left px-4 py-2.5 rounded-full font-label-caps text-label-caps uppercase text-on-surface hover:text-primary hover:bg-surface-container-high/60 transition-colors min-h-[44px] flex items-center">Reset</button>
+<button id="mobile-mixer-copy-btn" type="button" role="menuitem" class="w-full text-left px-4 py-2.5 rounded-full font-label-caps text-label-caps uppercase text-primary-fixed hover:bg-surface-container-high/60 transition-colors min-h-[44px] flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">content_copy</span><span>Copy Blend Token</span></button>
 </div>
-<!-- Mobile Mixer Actions (< md) -->
-<div class="flex flex-wrap md:hidden items-center justify-center gap-space-sm mt-space-md w-full px-margin z-10">
-<button onclick="document.getElementById('mixer-reset-btn')?.click()" type="button" class="min-h-[44px] px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-on-surface bg-surface-container-high/60 backdrop-blur-md shadow-sm whitespace-nowrap">Reset</button>
-<button onclick="document.getElementById('mixer-copy-blend-btn')?.click()" type="button" class="min-h-[44px] px-space-md py-space-xs rounded-full font-label-caps text-label-caps uppercase text-primary-fixed bg-surface-container-high/60 backdrop-blur-md shadow-sm flex items-center justify-center gap-1 whitespace-nowrap"><span class="material-symbols-outlined text-[14px]">content_copy</span><span>Copy Blend Token</span></button>
+</div>
 </div>
 </div>
 </div>
