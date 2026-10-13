@@ -274,3 +274,74 @@ html.js .blend-bar-animated {
   transition: transform 0.08s ease-out;
 }
 
+/* Pricing card badge & overflow fix (Bug 1) */
+#pricing-tiers {
+  overflow: visible !important;
+}
+
+#pricing-tiers .rounded-\[28px\],
+#pricing-tiers .card-light-container {
+  overflow: visible !important;
+}
+
+#pricing-tiers .absolute.-top-3\.5 {
+  top: -14px;
+  z-index: 30;
+  white-space: nowrap;
+}
+
+/* Tablet (768px-1023px) scaling to prevent collision */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hero-hud-badge {
+    transform: scale(0.85);
+  }
+}
+
+/* Mobile Layout Fixes (Bug 2: 320px to 767px) */
+@media (max-width: 767px) {
+  /* Prevent horizontal overflow on small screens */
+  #material-engine > div.inline-flex {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  #material-engine > div.inline-flex span {
+    font-size: 0.625rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* Hero CTAs: stack vertically, centered, equal width, max-width 20rem */
+  #material-engine .flex-col > a {
+    width: 100% !important;
+    max-width: 20rem !important;
+    min-height: 44px !important;
+  }
+
+  /* All tappable controls min-height 44px */
+  button,
+  .sheen-btn,
+  a.rounded-full,
+  button.rounded-full,
+  #mobile-menu a,
+  #mobile-menu-toggle {
+    min-height: 44px;
+  }
+
+  /* Alloy drop badges sizing on mobile to avoid overlap & cut off */
+  .hero-alloy-drop {
+    min-height: 44px;
+    padding: 2px !important;
+  }
+
+  .hero-alloy-drop > div:first-child {
+    transform: scale(0.75);
+  }
+
+  .hero-alloy-drop span[id^="drop-pct-"] {
+    font-size: 0.625rem !important;
+    letter-spacing: 0.04em !important;
+    white-space: nowrap !important;
+  }
+}
+
+
