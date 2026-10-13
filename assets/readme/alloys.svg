@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 180" width="1200" height="180" fill="none">
+  <title>The Alloys</title>
+  <desc>Three side-by-side pill bars for Lilac, Glaucous, and Snow Alloy</desc>
+  <defs>
+    <linearGradient id="cardBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D6CEFF" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#7B6FD0" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="lilacGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B6FD0"/>
+      <stop offset="50%" stop-color="#A89CF2"/>
+      <stop offset="100%" stop-color="#D6CEFF"/>
+    </linearGradient>
+    <linearGradient id="glaucousGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#55689A"/>
+      <stop offset="50%" stop-color="#7C93C9"/>
+      <stop offset="100%" stop-color="#B4C4EC"/>
+    </linearGradient>
+    <linearGradient id="snowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#AEB3D1"/>
+      <stop offset="50%" stop-color="#DCDFF2"/>
+      <stop offset="100%" stop-color="#F6F7FF"/>
+    </linearGradient>
+    <linearGradient id="innerSheen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.32"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.28"/>
+    </linearGradient>
+    <linearGradient id="topSpecular" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="80%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="180" rx="28" fill="#0D0C12"/>
+  <rect x="0.5" y="0.5" width="1199" height="179" rx="27.5" fill="none" stroke="url(#cardBorder)" stroke-width="1"/>
+
+  <g id="lilac-pill">
+    <rect x="60" y="35" width="330" height="110" rx="55" fill="url(#lilacGradient)"/>
+    <rect x="60" y="35" width="330" height="110" rx="55" fill="url(#innerSheen)"/>
+    <rect x="60.5" y="35.5" width="329" height="109" rx="54.5" fill="none" stroke="rgba(214,206,255,0.3)" stroke-width="1"/>
+    <line x1="115" y1="36" x2="335" y2="36" stroke="url(#topSpecular)" stroke-width="1.5"/>
+  </g>
+
+  <g id="glaucous-pill">
+    <rect x="435" y="35" width="330" height="110" rx="55" fill="url(#glaucousGradient)"/>
+    <rect x="435" y="35" width="330" height="110" rx="55" fill="url(#innerSheen)"/>
+    <rect x="435.5" y="35.5" width="329" height="109" rx="54.5" fill="none" stroke="rgba(180,196,236,0.3)" stroke-width="1"/>
+    <line x1="490" y1="36" x2="710" y2="36" stroke="url(#topSpecular)" stroke-width="1.5"/>
+  </g>
+
+  <g id="snow-pill">
+    <rect x="810" y="35" width="330" height="110" rx="55" fill="url(#snowGradient)"/>
+    <rect x="810" y="35" width="330" height="110" rx="55" fill="url(#innerSheen)"/>
+    <rect x="810.5" y="35.5" width="329" height="109" rx="54.5" fill="none" stroke="rgba(246,247,255,0.4)" stroke-width="1"/>
+    <line x1="865" y1="36" x2="1085" y2="36" stroke="url(#topSpecular)" stroke-width="1.5"/>
+  </g>
+</svg>

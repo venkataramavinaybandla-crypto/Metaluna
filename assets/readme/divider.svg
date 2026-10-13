@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 24" width="1200" height="24" fill="none">
+  <title>Section Divider</title>
+  <desc>Hairline divider that fades from transparent through Snow Alloy highlight with centered Lilac droplet</desc>
+  <defs>
+    <linearGradient id="divLine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F6F7FF" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#F6F7FF" stop-opacity="0.12"/>
+      <stop offset="50%" stop-color="#F6F7FF" stop-opacity="0.85"/>
+      <stop offset="80%" stop-color="#F6F7FF" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#F6F7FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lilacDroplet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B6FD0"/>
+      <stop offset="50%" stop-color="#A89CF2"/>
+      <stop offset="100%" stop-color="#D6CEFF"/>
+    </linearGradient>
+  </defs>
+  <line x1="0" y1="12" x2="1200" y2="12" stroke="url(#divLine)" stroke-width="1"/>
+  <rect x="586" y="8" width="28" height="8" rx="4" fill="url(#lilacDroplet)" stroke="rgba(214,206,255,0.4)" stroke-width="1"/>
+</svg>
