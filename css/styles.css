@@ -373,4 +373,16 @@ html.js .blend-bar-animated {
   }
 }
 
+@media (max-width: 767px) {
+  #hero-mixer-controls { display: none !important; }
+}
+@media (min-width: 768px) {
+  #mixer-kebab-btn, #mixer-mobile-dropdown { display: none !important; }
+}
+.hero-alloy-drop::after,
+.hero-alloy-drop *::after {
+  display: none !important;
+  animation: none !important;
+}
+
 
