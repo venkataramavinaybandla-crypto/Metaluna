@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Metalune — Haute-Couture Material Architecture</title>
+  <meta name="description" content="Blend molten specular metals into living brand tokens, tactile design kits, and multi-surface design systems in seconds. AI-native material system forged for sovereign brand formulations."/>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/images/metalune-emblem.png"/>
+  <link rel="apple-touch-icon" href="assets/images/metalune-emblem.png"/>
+
+  <!-- Open Graph / Social Meta Tags -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="Metalune — Haute-Couture Material Architecture"/>
+  <meta property="og:description" content="Blend molten specular metals into living brand tokens, tactile design kits, and multi-surface design systems in seconds."/>
+  <meta property="og:image" content="assets/images/hero-liquid-basin.jpg"/>
+  <meta property="og:url" content="/"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Metalune — Haute-Couture Material Architecture"/>
+  <meta name="twitter:description" content="Blend molten specular metals into living brand tokens, tactile design kits, and multi-surface design systems in seconds."/>
+  <meta name="twitter:image" content="assets/images/hero-liquid-basin.jpg"/>
+
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css"/>
+  
+  <!-- Tailwind CDN & Configuration -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "primary-fixed": "#e5deff", "background": "#141319", "surface-container": "#201f25", "tertiary": "#c2c6d8", "surface-dim": "#141319", "tertiary-container": "#a3a6b8", "on-secondary-fixed": "#001a43", "on-tertiary": "#2c303e", "error-container": "#93000a", "surface-container-low": "#1c1b21", "inverse-surface": "#e5e1ea", "outline-variant": "#484551", "on-surface": "#e5e1ea", "tertiary-fixed-dim": "#c2c6d8", "on-tertiary-container": "#383c4a", "surface-container-highest": "#35343b", "surface": "#141319", "secondary-fixed": "#d9e2ff", "on-error-container": "#ffdad6", "on-primary-fixed-variant": "#463b89", "on-primary-container": "#3c307e", "on-background": "#e5e1ea", "secondary": "#afc6ff", "on-tertiary-fixed-variant": "#424655", "surface-bright": "#3a383f", "tertiary-fixed": "#dfe2f5", "on-error": "#690005", "secondary-fixed-dim": "#afc6ff", "on-primary-fixed": "#1a055d", "primary-fixed-dim": "#c8bfff", "surface-container-lowest": "#0e0d13", "primary-container": "#a89cf2", "inverse-primary": "#5e53a3", "error": "#ffb4ab", "surface-container-high": "#2b2930", "on-tertiary-fixed": "#171b29", "primary": "#c8bfff", "on-secondary-fixed-variant": "#2e4677", "inverse-on-surface": "#312f36", "secondary-container": "#2e4677", "on-secondary": "#142f5f", "on-secondary-container": "#9db5ed", "on-surface-variant": "#c9c4d2", "surface-variant": "#35343b", "outline": "#928f9c", "surface-tint": "#c8bfff", "on-primary": "#302272" }, "borderRadius": { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" }, "spacing": { "space-xl": "2.5rem", "space-sm": "0.5rem", "margin-tablet": "2rem", "space-lg": "1.5rem", "gutter-desktop": "2rem", "margin": "1rem", "margin-desktop": "3.5rem", "space-xs": "0.25rem", "space-md": "1rem", "gutter": "1.5rem" }, "fontFamily": { "display-xl-mobile": ["Playfair Display"], "title-lg": ["Inter"], "label-caps": ["Inter"], "headline-md": ["Playfair Display"], "display-xl": ["Playfair Display"], "body-sm": ["Inter"], "label-sm": ["Inter"], "headline-lg-mobile": ["Playfair Display"], "headline-sm": ["Playfair Display"], "display-lg": ["Playfair Display"], "body-md": ["Inter"], "display-lg-mobile": ["Playfair Display"], "title-md": ["Inter"], "headline-lg": ["Playfair Display"], "body-lg": ["Inter"] }, "fontSize": { "display-xl-mobile": ["2.75rem", { "lineHeight": "3.25rem", "letterSpacing": "-0.01em", "fontWeight": "400" }], "title-lg": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-caps": ["0.6875rem", { "lineHeight": "1rem", "letterSpacing": "0.12em", "fontWeight": "600" }], "headline-md": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.005em", "fontWeight": "500" }], "display-xl": ["4.5rem", { "lineHeight": "5rem", "letterSpacing": "-0.02em", "fontWeight": "400" }], "body-sm": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0.005em", "fontWeight": "400" }], "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "500" }], "headline-lg-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "0em", "fontWeight": "400" }], "headline-sm": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "0em", "fontWeight": "500" }], "display-lg": ["3.5rem", { "lineHeight": "4rem", "letterSpacing": "-0.015em", "fontWeight": "400" }], "body-md": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "0em", "fontWeight": "400" }], "display-lg-mobile": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.01em", "fontWeight": "400" }], "title-md": ["1.125rem", { "lineHeight": "1.5rem", "letterSpacing": "0em", "fontWeight": "500" }], "headline-lg": ["2.5rem", { "lineHeight": "3rem", "letterSpacing": "-0.01em", "fontWeight": "400" }], "body-lg": ["1.125rem", { "lineHeight": "1.75rem", "letterSpacing": "0em", "fontWeight": "400" }] } } } };</script>
+</head><body class="bg-surface-container-lowest font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[0_1px_16px_rgba(0,0,0,0.4)]"><div class="h-20 w-full px-margin md:px-margin-tablet lg:px-margin-desktop flex items-center justify-between"><div class="flex items-center gap-space-md"><img alt="Metalune Emblem" class="h-8 w-auto object-contain" src="assets/images/metalune-emblem.png"/><a class="font-headline-sm text-headline-sm uppercase tracking-widest text-on-surface hover:text-primary transition-colors" data-path="metalune-landing" href="#">Metalune</a></div><nav class="hidden lg:flex items-center gap-space-xl" data-active-classes="text-primary font-title-md"><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="material-engine" href="#material-engine">Material Engine</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="finishes-catalog" href="#finishes-catalog">Finishes</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="bespoke-process" href="#bespoke-process">Process</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="pricing-tiers" href="#pricing-tiers">Pricing</a></nav><div class="flex items-center gap-space-md"><a class="hidden sm:inline-flex items-center justify-center px-space-lg py-space-sm rounded-full font-label-sm text-label-sm uppercase tracking-wider text-on-surface bg-surface-container-high/60 hover:bg-surface-container-highest hover:text-on-surface transition-all shadow-[inset_0_1px_1px_0_rgba(246,247,255,0.12)]" data-path="login" href="#">Log in</a><a class="inline-flex items-center justify-center px-space-lg py-space-sm rounded-full font-label-sm text-label-sm uppercase tracking-wider text-on-primary font-semibold bg-gradient-to-r from-primary-fixed via-primary-container to-inverse-primary hover:brightness-110 shadow-[0_0_24px_rgba(168,156,242,0.35)] transition-all" data-path="blend-studio" href="#">Start blending</a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div>
+    <!-- Mobile Menu Toggle Button -->
+      <button id="mobile-menu-toggle" type="button" class="lg:hidden p-2 rounded-full text-on-surface hover:text-primary hover:bg-surface-container-high/60 transition-colors focus:outline-none" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span id="mobile-menu-icon" class="material-symbols-outlined text-[24px]">menu</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Mobile Navigation Drawer -->
+  <div id="mobile-menu" class="menu-closed lg:hidden fixed top-20 left-0 right-0 bg-surface-container-lowest/95 backdrop-blur-2xl border-b border-outline-variant/30 shadow-[0_20px_48px_rgba(0,0,0,0.8)] px-margin py-space-lg flex flex-col gap-space-md z-40" aria-hidden="true">
+    <nav class="flex flex-col gap-space-sm">
+      <a class="font-title-md text-title-md text-on-surface hover:text-primary transition-colors py-2 px-space-xs rounded-lg hover:bg-surface-container-high/40" href="#material-engine">Material Engine</a>
+      <a class="font-title-md text-title-md text-on-surface hover:text-primary transition-colors py-2 px-space-xs rounded-lg hover:bg-surface-container-high/40" href="#finishes-catalog">Finishes</a>
+      <a class="font-title-md text-title-md text-on-surface hover:text-primary transition-colors py-2 px-space-xs rounded-lg hover:bg-surface-container-high/40" href="#bespoke-process">Process</a>
+      <a class="font-title-md text-title-md text-on-surface hover:text-primary transition-colors py-2 px-space-xs rounded-lg hover:bg-surface-container-high/40" href="#pricing-tiers">Pricing</a>
+    </nav>
+    <div class="h-px w-full bg-outline-variant/20 my-space-xs"></div>
+    <div class="flex flex-col gap-space-sm pt-space-xs">
+      <a class="inline-flex items-center justify-center w-full px-space-lg py-space-sm rounded-full font-label-sm text-label-sm uppercase tracking-wider text-on-surface bg-surface-container-high/60 hover:bg-surface-container-highest transition-all shadow-[inset_0_1px_1px_0_rgba(246,247,255,0.12)]" data-path="login" href="#">Log in</a>
+      <a class="inline-flex items-center justify-center w-full px-space-lg py-space-sm rounded-full font-label-sm text-label-sm uppercase tracking-wider text-on-primary font-semibold bg-gradient-to-r from-primary-fixed via-primary-container to-inverse-primary hover:brightness-110 shadow-[0_0_24px_rgba(168,156,242,0.35)] transition-all" data-path="blend-studio" href="#">Start blending</a>
+    </div>
+  </div>
+</header><main class="w-full pt-20 bg-surface-container-lowest min-h-screen"><div class="flex flex-col w-full">
+<!-- HERO SECTION -->
+<section id="material-engine" class="relative w-full overflow-hidden px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl flex flex-col items-center justify-center text-center">
+<!-- Ambient Specular Underglow behind mixing basin -->
+<div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/3 w-[820px] h-[520px] bg-gradient-to-tr from-inverse-primary/20 via-primary-container/15 to-secondary/10 blur-[130px] rounded-full"></div>
+<!-- Eyebrow Pill -->
+<div class="relative z-10 inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-high/80 backdrop-blur-xl shadow-[inset_0_1px_1px_0_rgba(246,247,255,0.2),0_8px_24px_rgba(123,111,208,0.18)] mb-space-lg">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#c8bfff]"></span>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-primary-fixed">AI-Native Material System · Autumn 2025 Release</span>
+</div>
+<!-- Monumental Headline -->
+<h1 class="relative z-10 font-display-xl text-display-xl-mobile md:text-display-xl tracking-tight text-on-surface max-w-4xl mx-auto italic mb-space-md">
+      Mix a material.<br/>
+<span class="text-transparent bg-clip-text bg-gradient-to-r from-tertiary-fixed via-primary-fixed to-secondary-fixed">Ship a brand.</span>
+</h1>
+<!-- Subcopy -->
+<p class="relative z-10 font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto mb-space-xl">
+      Blend molten specular metals into living brand tokens, tactile design kits, and multi-surface design systems in seconds.
+    </p>
+<!-- CTAs -->
+<div class="relative z-10 flex flex-wrap items-center justify-center gap-space-md mb-space-xl">
+<a class="inline-flex items-center justify-center px-space-xl py-space-md rounded-full font-title-md text-title-md font-semibold text-surface-container-lowest bg-gradient-to-r from-tertiary-fixed via-primary-container to-inverse-primary hover:brightness-110 shadow-[0_12px_36px_rgba(168,156,242,0.35),inset_0_1px_2px_rgba(255,255,255,0.6)] transition-all" href="#">
+        Start blending
+      </a>
+<a class="inline-flex items-center justify-center px-space-xl py-space-md rounded-full font-title-md text-title-md text-on-surface bg-surface-container-high/40 hover:bg-surface-container-highest/80 backdrop-blur-xl shadow-[inset_0_1px_1px_0_rgba(246,247,255,0.22)] transition-all" href="#finishes-catalog">
+        Explore finishes
+      </a>
+</div>
+<!-- Mixing Basin Centerpiece -->
+<div class="relative z-10 w-full max-w-5xl mt-space-md">
+<div class="relative aspect-[16/9] w-full rounded-[36px] bg-surface-container-lowest/90 backdrop-blur-3xl shadow-[inset_0_1px_2px_rgba(255,255,255,0.24),0_32px_80px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
+<!-- Brushed Titanium Inner Bezel Rim -->
+<div class="absolute inset-4 rounded-[28px] bg-surface-container-high/30 shadow-[inset_0_0_80px_rgba(0,0,0,0.85)] flex items-center justify-center overflow-hidden">
+<!-- Photorealistic Liquid Metallic Swirl Canvas Placeholder -->
+<div class="absolute inset-0 bg-cover bg-center mix-blend-screen opacity-90" role="img" aria-label="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." data-alt="A cinematic, ultra-detailed macro overhead view of molten liquid platinum, iridescent lilac alloy, and glacial glaucous blue mercury merging inside a dark obsidian glass basin. Razor-sharp caustics, metallic fluid ribbons swirling together, and directional light refraction with hyper-realistic liquid viscosity." style="background-image: url('assets/images/hero-liquid-basin.jpg')"></div>
+<!-- Liquid Caustics & Reflection Overlay Gradient -->
+<div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-surface-container-lowest/80"></div>
+<!-- SVG Fluid Specular Vector Graphic Overlay -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" fill="none" preserveaspectratio="xMidYMid slice" viewbox="0 0 1000 562">
+<defs>
+<lineargradient id="lilacFluid" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#D6CEFF" stop-opacity="0.9"></stop>
+<stop offset="50%" stop-color="#A89CF2" stop-opacity="0.65"></stop>
+<stop offset="100%" stop-color="#7B6FD0" stop-opacity="0.1"></stop>
+</lineargradient>
+<lineargradient id="glaucousFluid" x1="100%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#B4C4EC" stop-opacity="0.85"></stop>
+<stop offset="60%" stop-color="#7C93C9" stop-opacity="0.5"></stop>
+<stop offset="100%" stop-color="#55689A" stop-opacity="0.1"></stop>
+</lineargradient>
+<lineargradient id="snowFluid" x1="50%" x2="50%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"></stop>
+<stop offset="45%" stop-color="#DCDFF2" stop-opacity="0.7"></stop>
+<stop offset="100%" stop-color="#AEB3D1" stop-opacity="0.15"></stop>
+</lineargradient>
+</defs>
+<!-- Flowing caustic paths -->
+<path d="M220 280 C 310 180, 430 380, 520 280 C 610 180, 750 340, 820 240" opacity="0.6" stroke="url(#snowFluid)" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M180 320 C 340 430, 480 180, 640 290 C 720 350, 840 220, 880 280" opacity="0.45" stroke="url(#lilacFluid)" stroke-linecap="round" stroke-width="4"></path>
+<path d="M300 240 C 420 300, 540 210, 680 320" opacity="0.5" stroke="url(#glaucousFluid)" stroke-linecap="round" stroke-width="3"></path>
+<!-- Concentric ripples -->
+<ellipse class="text-tertiary-fixed/15" cx="500" cy="281" rx="360" ry="170" stroke="currentColor" stroke-dasharray="8 12" stroke-width="1"></ellipse>
+<ellipse class="text-primary-fixed/20" cx="500" cy="281" rx="240" ry="110" stroke="currentColor" stroke-width="1.2"></ellipse>
+<ellipse class="text-secondary-fixed/25" cx="500" cy="281" rx="120" ry="55" stroke="currentColor" stroke-width="1.5"></ellipse>
+</svg>
+<!-- Interactive Center Focal Point Nodes -->
+<div class="relative z-10 flex items-center justify-center gap-space-sm sm:gap-space-lg">
+<!-- Molten Lilac Drop Indicator -->
+<div class="flex flex-col items-center group cursor-pointer">
+<div class="w-16 h-16 rounded-full bg-gradient-to-br from-tertiary-fixed via-primary-container to-on-primary-fixed shadow-[0_0_28px_#a89cf2,inset_0_1px_2px_#ffffff] transform group-hover:scale-110 transition-transform flex items-center justify-center">
+<span class="w-4 h-4 rounded-full bg-surface-container-lowest/60 backdrop-blur-md"></span>
+</div>
+<span class="mt-space-xs font-label-caps text-label-caps uppercase text-primary-fixed tracking-widest">Lilac 38%</span>
+</div>
+<!-- Molten Snow Alloy Drop Indicator -->
+<div class="flex flex-col items-center group cursor-pointer -mt-space-md">
+<div class="w-20 h-20 rounded-full bg-gradient-to-b from-white via-tertiary-fixed to-outline-variant shadow-[0_0_36px_#f6f7ff,inset_0_1px_3px_#ffffff] transform group-hover:scale-110 transition-transform flex items-center justify-center">
+<span class="w-6 h-6 rounded-full bg-surface-container-lowest/70 backdrop-blur-md"></span>
+</div>
+<span class="mt-space-xs font-label-caps text-label-caps uppercase text-on-surface tracking-widest">Snow 42%</span>
+</div>
+<!-- Molten Glaucous Drop Indicator -->
+<div class="flex flex-col items-center group cursor-pointer">
+<div class="w-16 h-16 rounded-full bg-gradient-to-tr from-on-secondary-fixed via-secondary to-secondary-fixed shadow-[0_0_28px_#7c93c9,inset_0_1px_2px_#ffffff] transform group-hover:scale-110 transition-transform flex items-center justify-center">
+<span class="w-4 h-4 rounded-full bg-surface-container-lowest/60 backdrop-blur-md"></span>
+</div>
+<span class="mt-space-xs font-label-caps text-label-caps uppercase text-secondary-fixed tracking-widest">Glaucous 20%</span>
+</div>
+</div>
+<!-- Floating Telemetry Glass Badges -->
+<div class="absolute bottom-6 left-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)]">
+<span class="material-symbols-outlined text-primary text-[16px]">waves</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Viscosity: <strong class="text-on-surface">0.84 P</strong></span>
+</div>
+<div class="absolute top-6 left-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)]">
+<span class="material-symbols-outlined text-secondary text-[16px]">flare</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Specular Roughness: <strong class="text-on-surface">0.04</strong></span>
+</div>
+<div class="absolute bottom-6 right-6 hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)]">
+<span class="material-symbols-outlined text-primary-fixed text-[16px]">verified</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Alloy Purity: <strong class="text-on-surface">99.8%</strong></span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- THE CORE ENGINE: 3 FEATURE CARDS -->
+<section id="bespoke-process" class="relative w-full px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl overflow-hidden">
+<div class="max-w-6xl mx-auto flex flex-col gap-space-xl">
+<!-- Section Header -->
+<div class="flex flex-col items-start gap-space-xs">
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-primary">The Core Engine</span>
+<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg italic text-on-surface">The chemistry of liquid identity</h2>
+</div>
+<!-- Feature Flow Cards Grid -->
+<div class="relative grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+<!-- Connecting Line Overlay -->
+<div class="hidden md:block absolute top-1/2 left-8 right-8 h-px -translate-y-12 bg-gradient-to-r from-transparent via-outline-variant/40 to-transparent pointer-events-none"></div>
+<!-- Card 01: Blend -->
+<div class="relative rounded-[28px] bg-surface-container/70 backdrop-blur-2xl p-space-lg shadow-[inset_0_1px_1px_rgba(246,247,255,0.15),0_20px_48px_rgba(0,0,0,0.5)] flex flex-col justify-between h-[420px] group hover:bg-surface-container-high/80 transition-all">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-primary-fixed">Phase 01</span>
+<h3 class="font-headline-sm text-headline-sm italic text-on-surface mt-space-xs">Blend</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">Multi-alloy procedural fusing.</p>
+</div>
+<span class="font-display-lg text-display-lg italic text-white/10 select-none">01</span>
+</div>
+<!-- Interactive Metallic Dial / Slider UI Mockup -->
+<div class="rounded-[20px] bg-surface-container-lowest/80 p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] flex flex-col gap-space-sm">
+<div class="flex justify-between items-center text-on-surface-variant font-label-caps text-label-caps">
+<span>LILAC RATIO</span>
+<span class="text-primary">64%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary-container to-primary w-[64%] rounded-full shadow-[0_0_8px_#a89cf2]"></div>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant font-label-caps text-label-caps mt-space-xs">
+<span>GLAUCOUS SHEEN</span>
+<span class="text-secondary">28%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-gradient-to-r from-secondary-container to-secondary w-[28%] rounded-full shadow-[0_0_8px_#7c93c9]"></div>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant font-label-caps text-label-caps mt-space-xs">
+<span>SNOW REFLECTION</span>
+<span class="text-tertiary">08%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-gradient-to-r from-outline-variant to-tertiary-fixed w-[8%] rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Card 02: Name -->
+<div class="relative rounded-[28px] bg-surface-container/70 backdrop-blur-2xl p-space-lg shadow-[inset_0_1px_1px_rgba(246,247,255,0.15),0_20px_48px_rgba(0,0,0,0.5)] flex flex-col justify-between h-[420px] group hover:bg-surface-container-high/80 transition-all">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-secondary-fixed">Phase 02</span>
+<h3 class="font-headline-sm text-headline-sm italic text-on-surface mt-space-xs">Name</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">Autonomous nomenclature &amp; semantics.</p>
+</div>
+<span class="font-display-lg text-display-lg italic text-white/10 select-none">02</span>
+</div>
+<!-- Semantic Variable Pills -->
+<div class="rounded-[20px] bg-surface-container-lowest/80 p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] flex flex-col gap-space-xs font-mono text-body-sm">
+<div class="flex items-center justify-between p-space-xs rounded-lg bg-surface-container/60">
+<span class="text-primary-fixed">--lune-amethyst-900</span>
+<span class="text-xs text-on-surface-variant">#1A1629</span>
+</div>
+<div class="flex items-center justify-between p-space-xs rounded-lg bg-surface-container/60">
+<span class="text-secondary-fixed">--specular-band-glaucous</span>
+<span class="text-xs text-on-surface-variant">IOR: 1.8</span>
+</div>
+<div class="flex items-center justify-between p-space-xs rounded-lg bg-surface-container/60">
+<span class="text-tertiary-fixed">--snow-luster-opacity</span>
+<span class="text-xs text-on-surface-variant">0.94</span>
+</div>
+</div>
+</div>
+<!-- Card 03: Export -->
+<div class="relative rounded-[28px] bg-surface-container/70 backdrop-blur-2xl p-space-lg shadow-[inset_0_1px_1px_rgba(246,247,255,0.15),0_20px_48px_rgba(0,0,0,0.5)] flex flex-col justify-between h-[420px] group hover:bg-surface-container-high/80 transition-all">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-primary">Phase 03</span>
+<h3 class="font-headline-sm text-headline-sm italic text-on-surface mt-space-xs">Export</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">Instant vector, shader, and token pipelines.</p>
+</div>
+<span class="font-display-lg text-display-lg italic text-white/10 select-none">03</span>
+</div>
+<!-- Export Formats Cluster -->
+<div class="rounded-[20px] bg-surface-container-lowest/80 p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-1 rounded-full bg-surface-container font-label-caps text-label-caps uppercase text-primary-fixed shadow-sm">GLSL Fragment</span>
+<span class="px-space-sm py-1 rounded-full bg-surface-container font-label-caps text-label-caps uppercase text-secondary-fixed shadow-sm">SwiftUI Metals</span>
+<span class="px-space-sm py-1 rounded-full bg-surface-container font-label-caps text-label-caps uppercase text-tertiary shadow-sm">Tailwind Config</span>
+<span class="px-space-sm py-1 rounded-full bg-surface-container font-label-caps text-label-caps uppercase text-on-surface shadow-sm">SVG Vector Mesh</span>
+<span class="px-space-sm py-1 rounded-full bg-surface-container font-label-caps text-label-caps uppercase text-primary shadow-sm">Design Tokens JSON</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- THE ARCHIVE: SWATCH GALLERY -->
+<section id="finishes-catalog" class="relative w-full px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl overflow-hidden bg-surface-container-lowest">
+<div class="max-w-6xl mx-auto flex flex-col gap-space-xl">
+<!-- Section Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-primary">The Archive</span>
+<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg italic text-on-surface mt-space-xs">Curated finishes forged in Metalune</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-xs">Six foundational alloy compositions engineered for sovereign identity systems.</p>
+</div>
+<!-- 6 Swatch Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
+<!-- Swatch 1: Boreal Lilac -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_16px_40px_rgba(0,0,0,0.4)] flex flex-col gap-space-md hover:bg-surface-container-high/60 transition-all group">
+<div class="relative h-48 w-full rounded-[20px] overflow-hidden bg-surface-container-lowest">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-700" role="img" aria-label="Macro view of poured Boreal Lilac molten alloy with a deep amethyst shadow, lavender metallic sheen, and a pure titanium razor-sharp reflection bar running diagonally across liquid glass." data-alt="Macro view of poured Boreal Lilac molten alloy with a deep amethyst shadow, lavender metallic sheen, and a pure titanium razor-sharp reflection bar running diagonally across liquid glass." style="background-image: url('assets/images/swatch-boreal-lilac.jpg')"></div>
+<div class="absolute top-3 right-3 px-space-xs py-0.5 rounded-full bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps text-primary-fixed">IOR: 2.4</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<h4 class="font-headline-sm text-headline-sm italic text-on-surface">Boreal Lilac</h4>
+<span class="font-label-caps text-label-caps text-on-surface-variant">70% Lilac · 30% Snow</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Deep amethyst shadow, lavender sheen, pure titanium light bar.</p>
+</div>
+<button class="mt-auto w-full py-space-xs rounded-full bg-surface-container-highest/60 hover:bg-primary hover:text-on-primary font-label-caps text-label-caps uppercase tracking-wider text-on-surface transition-all">Copy Token</button>
+</div>
+<!-- Swatch 2: Glaucous Mirror -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_16px_40px_rgba(0,0,0,0.4)] flex flex-col gap-space-md hover:bg-surface-container-high/60 transition-all group">
+<div class="relative h-48 w-full rounded-[20px] overflow-hidden bg-surface-container-lowest">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-700" role="img" aria-label="High-contrast metallic texture of Glaucous Mirror alloy. Deep oceanic slate blue fluid ground with a frozen glacial steel specular reflection sheen and mirror-like caustics." data-alt="High-contrast metallic texture of Glaucous Mirror alloy. Deep oceanic slate blue fluid ground with a frozen glacial steel specular reflection sheen and mirror-like caustics." style="background-image: url('assets/images/swatch-glaucous-mirror.jpg')"></div>
+<div class="absolute top-3 right-3 px-space-xs py-0.5 rounded-full bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps text-secondary-fixed">IOR: 2.6</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<h4 class="font-headline-sm text-headline-sm italic text-on-surface">Glaucous Mirror</h4>
+<span class="font-label-caps text-label-caps text-on-surface-variant">85% Glaucous · 15% Snow</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Deep oceanic slate blue, glacial steel highlight, zero grain.</p>
+</div>
+<button class="mt-auto w-full py-space-xs rounded-full bg-surface-container-highest/60 hover:bg-primary hover:text-on-primary font-label-caps text-label-caps uppercase tracking-wider text-on-surface transition-all">Copy Token</button>
+</div>
+<!-- Swatch 3: Snow Alloy 04 -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_16px_40px_rgba(0,0,0,0.4)] flex flex-col gap-space-md hover:bg-surface-container-high/60 transition-all group">
+<div class="relative h-48 w-full rounded-[20px] overflow-hidden bg-surface-container-lowest">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-700" role="img" aria-label="Ultra-pure white-hot liquid mercury surface, Snow Alloy 04, featuring platinum mirror edges, high-dynamic-range light streaks, and vitreous liquid silver ripples." data-alt="Ultra-pure white-hot liquid mercury surface, Snow Alloy 04, featuring platinum mirror edges, high-dynamic-range light streaks, and vitreous liquid silver ripples." style="background-image: url('assets/images/swatch-snow-alloy-04.jpg')"></div>
+<div class="absolute top-3 right-3 px-space-xs py-0.5 rounded-full bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps text-tertiary-fixed">IOR: 3.1</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<h4 class="font-headline-sm text-headline-sm italic text-on-surface">Snow Alloy 04</h4>
+<span class="font-label-caps text-label-caps text-on-surface-variant">100% Snow Alloy</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pure white-hot mercury, platinum mirror edge, infinite depth.</p>
+</div>
+<button class="mt-auto w-full py-space-xs rounded-full bg-surface-container-highest/60 hover:bg-primary hover:text-on-primary font-label-caps text-label-caps uppercase tracking-wider text-on-surface transition-all">Copy Token</button>
+</div>
+<!-- Swatch 4: Imperial Violet -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_16px_40px_rgba(0,0,0,0.4)] flex flex-col gap-space-md hover:bg-surface-container-high/60 transition-all group">
+<div class="relative h-48 w-full rounded-[20px] overflow-hidden bg-surface-container-lowest">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-700" role="img" aria-label="Dark obsidian liquid metal background with midnight plum ripples, Imperial Violet alloy, featuring razor-sharp silver-lilac specular streaks and deep royal reflections." data-alt="Dark obsidian liquid metal background with midnight plum ripples, Imperial Violet alloy, featuring razor-sharp silver-lilac specular streaks and deep royal reflections." style="background-image: url('assets/images/swatch-imperial-violet.jpg')"></div>
+<div class="absolute top-3 right-3 px-space-xs py-0.5 rounded-full bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps text-primary-fixed">IOR: 2.1</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<h4 class="font-headline-sm text-headline-sm italic text-on-surface">Imperial Violet</h4>
+<span class="font-label-caps text-label-caps text-on-surface-variant">60% Lilac · 40% Glaucous</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Midnight plum with razor-sharp silver-lilac specular streak.</p>
+</div>
+<button class="mt-auto w-full py-space-xs rounded-full bg-surface-container-highest/60 hover:bg-primary hover:text-on-primary font-label-caps text-label-caps uppercase tracking-wider text-on-surface transition-all">Copy Token</button>
+</div>
+<!-- Swatch 5: Cold Titanium -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_16px_40px_rgba(0,0,0,0.4)] flex flex-col gap-space-md hover:bg-surface-container-high/60 transition-all group">
+<div class="relative h-48 w-full rounded-[20px] overflow-hidden bg-surface-container-lowest">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-700" role="img" aria-label="Industrial brushed titanium texture with anisotropic light reflection, Cold Titanium alloy, soft glaucous undertones, perfectly parallel micro-grooves and soft diffuse sheen." data-alt="Industrial brushed titanium texture with anisotropic light reflection, Cold Titanium alloy, soft glaucous undertones, perfectly parallel micro-grooves and soft diffuse sheen." style="background-image: url('assets/images/swatch-cold-titanium.jpg')"></div>
+<div class="absolute top-3 right-3 px-space-xs py-0.5 rounded-full bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps text-secondary-fixed">IOR: 1.9</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<h4 class="font-headline-sm text-headline-sm italic text-on-surface">Cold Titanium</h4>
+<span class="font-label-caps text-label-caps text-on-surface-variant">50% Glaucous · 50% Snow</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Muted glaucous alloy with industrial brushed anisotropic texture.</p>
+</div>
+<button class="mt-auto w-full py-space-xs rounded-full bg-surface-container-highest/60 hover:bg-primary hover:text-on-primary font-label-caps text-label-caps uppercase tracking-wider text-on-surface transition-all">Copy Token</button>
+</div>
+<!-- Swatch 6: Astral Mercury -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_16px_40px_rgba(0,0,0,0.4)] flex flex-col gap-space-md hover:bg-surface-container-high/60 transition-all group">
+<div class="relative h-48 w-full rounded-[20px] overflow-hidden bg-surface-container-lowest">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-700" role="img" aria-label="Mesmerizing suspended mercury droplet with chromatic iridescent rims, Astral Mercury alloy, capturing purple-violet and icy blue caustics under an obsidian spotlight." data-alt="Mesmerizing suspended mercury droplet with chromatic iridescent rims, Astral Mercury alloy, capturing purple-violet and icy blue caustics under an obsidian spotlight." style="background-image: url('assets/images/swatch-astral-mercury.jpg')"></div>
+<div class="absolute top-3 right-3 px-space-xs py-0.5 rounded-full bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps text-primary-fixed">IOR: 2.8</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<h4 class="font-headline-sm text-headline-sm italic text-on-surface">Astral Mercury</h4>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Tri-Alloy Harmonic</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">High-contrast liquid drop finish with iridescent perimeter rim.</p>
+</div>
+<button class="mt-auto w-full py-space-xs rounded-full bg-surface-container-highest/60 hover:bg-primary hover:text-on-primary font-label-caps text-label-caps uppercase tracking-wider text-on-surface transition-all">Copy Token</button>
+</div>
+</div>
+</div>
+</section>
+<!-- PRODUCT FACTS STRIP -->
+<section class="relative w-full py-space-xl bg-surface-container-low shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.06)]">
+<div class="max-w-6xl mx-auto px-margin md:px-margin-tablet lg:px-margin-desktop grid grid-cols-1 md:grid-cols-3 gap-space-xl text-center md:text-left">
+<!-- Metric 1 -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-display-xl text-display-xl-mobile md:text-display-xl italic text-on-surface tracking-tight">120k+</span>
+<p class="font-label-caps text-label-caps uppercase tracking-widest text-primary">Blended Alloys Compiled</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Deployed directly into live production design systems and mobile runtimes.</p>
+</div>
+<!-- Metric 2 -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-display-xl text-display-xl-mobile md:text-display-xl italic text-secondary-fixed tracking-tight">&lt; 12ms</span>
+<p class="font-label-caps text-label-caps uppercase tracking-widest text-secondary">GPU Shader Compilation</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Instant rasterization and physically based multi-surface light calculation.</p>
+</div>
+<!-- Metric 3 -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-display-xl text-display-xl-mobile md:text-display-xl italic text-tertiary-fixed tracking-tight">0 Flat Colors</span>
+<p class="font-label-caps text-label-caps uppercase tracking-widest text-tertiary">Sovereign Chemistry</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Every token calculated as a responsive multi-specular surface with depth.</p>
+</div>
+</div>
+</section>
+<!-- PRICING SECTION -->
+<section id="pricing-tiers" class="relative w-full px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl overflow-hidden">
+<div class="max-w-6xl mx-auto flex flex-col gap-space-xl">
+<!-- Section Header -->
+<div class="flex flex-col items-center text-center gap-space-xs">
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-primary">Investment</span>
+<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg italic text-on-surface">Quiet luxury for ambitious brands</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-lg">Choose the tier calibrated to your atelier's output.</p>
+</div>
+<!-- 3 Tier Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg items-stretch">
+<!-- Tier 1: Atelier -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_16px_40px_rgba(0,0,0,0.3)] flex flex-col justify-between">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-on-surface-variant">Studio Tier</span>
+<h3 class="font-headline-sm text-headline-sm italic text-on-surface mt-space-xs">Atelier</h3>
+<div class="flex items-baseline gap-space-xs my-space-md">
+<span class="font-display-lg text-display-lg-mobile md:text-display-lg italic text-on-surface">$90</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">/ month</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-lg">For independent studios and solo design directors formulating signature aesthetics.</p>
+<ul class="space-y-space-sm font-body-sm text-body-sm text-on-surface">
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                5 concurrent live blends
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Export 4K textures &amp; normals
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                CSS &amp; SVG vector tokens
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Community archive access
+              </li>
+</ul>
+</div>
+<button class="mt-space-xl w-full py-space-sm rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider transition-all">Acquire Atelier</button>
+</div>
+<!-- Tier 2 (Highlighted): Maison -->
+<div class="relative rounded-[28px] bg-surface-container-high/80 backdrop-blur-2xl p-space-lg shadow-[inset_0_1px_2px_rgba(255,255,255,0.3),0_24px_64px_rgba(123,111,208,0.25)] flex flex-col justify-between">
+<!-- Most Selected Pill Badge -->
+<div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-space-md py-1 rounded-full bg-gradient-to-r from-tertiary-fixed via-primary-container to-inverse-primary text-surface-container-lowest font-label-caps text-label-caps uppercase tracking-widest font-semibold shadow-md">
+            Most Selected
+          </div>
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-primary">Signature Tier</span>
+<h3 class="font-headline-sm text-headline-sm italic text-on-surface mt-space-xs">Maison</h3>
+<div class="flex items-baseline gap-space-xs my-space-md">
+<span class="font-display-lg text-display-lg-mobile md:text-display-lg italic text-on-surface">$280</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">/ month</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-lg">For growing brands and digital products requiring dynamic shader infrastructure.</p>
+<ul class="space-y-space-sm font-body-sm text-body-sm text-on-surface">
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Unlimited concurrent blends
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Custom alloy neural training
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Three.js &amp; GLSL compiled shaders
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Multi-brand cloud synchronization
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Priority GPU compile nodes
+              </li>
+</ul>
+</div>
+<button class="mt-space-xl w-full py-space-sm rounded-full bg-gradient-to-r from-tertiary-fixed via-primary-container to-inverse-primary text-surface-container-lowest font-label-caps text-label-caps uppercase tracking-wider font-semibold hover:brightness-110 shadow-lg transition-all">Acquire Maison</button>
+</div>
+<!-- Tier 3: Sovereign -->
+<div class="rounded-[28px] bg-surface-container/60 backdrop-blur-2xl p-space-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_16px_40px_rgba(0,0,0,0.3)] flex flex-col justify-between">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-on-surface-variant">Bespoke Enterprise</span>
+<h3 class="font-headline-sm text-headline-sm italic text-on-surface mt-space-xs">Sovereign</h3>
+<div class="flex items-baseline gap-space-xs my-space-md">
+<span class="font-headline-lg text-headline-lg italic text-on-surface">Custom</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-lg">For global luxury houses, automotive suites, and industrial hardware innovators.</p>
+<ul class="space-y-space-sm font-body-sm text-body-sm text-on-surface">
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Dedicated material engineer
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Physical substrate calibration
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                On-premise rendering clusters
+              </li>
+<li class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                Bespoke color science advisory
+              </li>
+</ul>
+</div>
+<button class="mt-space-xl w-full py-space-sm rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider transition-all">Contact Atelier</button>
+</div>
+</div>
+</div>
+</section>
+<!-- CLOSING CONTRAST SECTION -->
+<section class="relative w-full px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl mb-space-xl">
+<div class="max-w-6xl mx-auto rounded-[36px] bg-[#F4F2EE] text-[#0D0C12] p-space-xl shadow-[0_32px_96px_rgba(0,0,0,0.6)] flex flex-col md:flex-row items-center justify-between gap-space-xl relative overflow-hidden">
+<!-- Ambient specular watermark behind text -->
+<div class="pointer-events-none absolute -right-20 -top-20 w-96 h-96 bg-gradient-to-br from-[#A89CF2]/20 via-[#afc6ff]/10 to-transparent rounded-full blur-3xl"></div>
+<div class="flex flex-col gap-space-xs max-w-xl z-10">
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-[#575266]">Immediate Onboarding</span>
+<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg italic tracking-tight text-[#0D0C12]">Craft your signature alloy today.</h2>
+<p class="font-body-md text-body-md text-[#484551] mt-space-xs">Join the top luxury houses, hardware teams, and digital ateliers moving beyond flat design.</p>
+</div>
+<div class="z-10 flex flex-col sm:flex-row gap-space-md w-full md:w-auto">
+<a class="inline-flex items-center justify-center px-space-xl py-space-md rounded-full font-title-md text-title-md text-[#F4F2EE] bg-[#0D0C12] hover:bg-[#201f25] shadow-xl transition-all" href="#">
+          Request Atelier Access
+        </a>
+</div>
+</div>
+</section>
+</div></main><footer class="w-full bg-surface-container-lowest"><div class="w-full px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-space-xl pb-space-xl"><div class="lg:col-span-2 space-y-space-md"><div class="flex items-center gap-space-sm"><img alt="Metalune Emblem" class="h-7 w-auto object-contain" src="assets/images/metalune-emblem.png"/><span class="font-headline-sm text-headline-sm uppercase tracking-widest text-on-surface">Metalune</span></div><p class="font-body-sm text-body-sm text-on-surface-variant max-w-sm">Mix a material. Ship a brand. Haute-couture material architecture engineered for quiet luxury, tactile presence, and sovereign brand formulations.</p><div class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high shadow-[inset_0_1px_1px_0_rgba(246,247,255,0.08)]"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Engine v2.4 Active</span></div></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Platform</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Substrate Studio</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Specular Light Lab</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Export Matrices</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Color Science</li></ul></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Finishes</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Lilac Alloy</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Glaucous Specular</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Obsidian Glass</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Snow Luster</li></ul></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Resources</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Material Gazette</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">API Documentation</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Brand Tokens</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Case Studies</li></ul></div><div class="space-y-space-sm"><p class="font-label-caps text-label-caps uppercase text-primary tracking-widest">Company</p><ul class="space-y-space-xs"><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Atelier</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Manifesto</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Concierge</li><li class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Privacy &amp; Terms</li></ul></div></div><div class="pt-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-md"><span class="font-label-sm text-label-sm text-on-surface-variant">© 2025 Metalune Atelier Inc. All rights reserved.</span><div class="flex items-center gap-space-lg"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase hover:text-on-surface cursor-pointer">Legal</span><span class="font-label-caps text-label-caps text-on-surface-variant uppercase hover:text-on-surface cursor-pointer">Security</span><span class="font-label-caps text-label-caps text-on-surface-variant uppercase hover:text-on-surface cursor-pointer">Atelier Portal</span></div></div></div></footer><script src="js/app.js"></script>
+</body>
+</html>
