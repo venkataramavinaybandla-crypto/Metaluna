@@ -9,7 +9,7 @@
 
   var BACKEND_KEY = "metalune.imageFoundry.backend";
   var NOTEBOOK_KEY = "metalune.imageStudio.notebook";
-  var DEFAULT_BACKEND = "https://engaged-hills-rational-probability.trycloudflare.com";
+  var DEFAULT_BACKEND = "https://amusement-hesitant-track.ngrok-free.dev";
   var DEFAULT_NOTEBOOK = "https://colab.research.google.com/";
   var RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
   var OFFLINE = "Backend offline. Paste a fresh URL from Colab.";
@@ -74,6 +74,7 @@
   var backendSaveId = null;
   var notebookSaveId = null;
   var healthTimer = null;
+  var foundryReady = false;
   var lbAt = 0;
 
   /* ---------------------------------------------------------------- utils */
@@ -130,7 +131,11 @@
   }
 
   function backendBase() {
-    return backendEl.value.trim().replace(/\/+$/, "");
+    var custom = backendEl.value.trim();
+    if (custom && custom !== "https://engaged-hills-rational-probability.trycloudflare.com") {
+      return custom.replace(/\/+$/, "");
+    }
+    return DEFAULT_BACKEND;
   }
 
   function notebookLink() {
@@ -154,15 +159,20 @@
   }
 
   function loadSettings() {
-    backendEl.value = readStore(BACKEND_KEY) || DEFAULT_BACKEND;
+    var storedBackend = readStore(BACKEND_KEY);
+    if (storedBackend === "https://engaged-hills-rational-probability.trycloudflare.com") {
+      storedBackend = "";
+      writeStore(BACKEND_KEY, "");
+    }
+    backendEl.value = storedBackend || "";
     notebookEl.value = readStore(NOTEBOOK_KEY) || DEFAULT_NOTEBOOK;
     wakeBtn.href = notebookLink();
   }
 
   function persistBackend() {
-    var value = backendBase();
+    var value = backendEl.value.trim();
     if (writeStore(BACKEND_KEY, value)) {
-      backendNote.textContent = "Saved in this browser.";
+      backendNote.textContent = value ? "Saved in this browser." : "Using default URL.";
       backendNote.classList.add("is-saved");
       backendNote.classList.remove("is-error");
     } else {
@@ -189,17 +199,38 @@
 
   /* --------------------------------------------------------------- health */
 
-  function paintFoundry(online) {
-    foundryPill.setAttribute("data-state", online ? "online" : "offline");
-    foundryLabel.textContent = online ? "Foundry online" : "Foundry asleep";
-    foundryWake.hidden = online;
-    wakeBtn.href = notebookLink();
+  function setFoundryState(state) {
+    var wakeLine = foundryWake ? foundryWake.querySelector(".foundry-wake-line") : null;
+    if (wakeLine) {
+      wakeLine.textContent = "In Colab press Ctrl+F9, click Allow once, then come back here.";
+    }
+
+    if (state === "online") {
+      foundryReady = true;
+      foundryPill.setAttribute("data-state", "online");
+      foundryLabel.textContent = "Foundry online";
+      foundryWake.hidden = true;
+      if (!running) generateBtn.disabled = false;
+    } else if (state === "warming") {
+      foundryReady = false;
+      foundryPill.setAttribute("data-state", "warming");
+      foundryLabel.textContent = "Foundry warming up";
+      foundryWake.hidden = true;
+      if (!running) generateBtn.disabled = true;
+    } else {
+      foundryReady = false;
+      foundryPill.setAttribute("data-state", "offline");
+      foundryLabel.textContent = "Foundry asleep";
+      foundryWake.hidden = false;
+      wakeBtn.href = notebookLink();
+      if (!running) generateBtn.disabled = true;
+    }
   }
 
   function checkHealth() {
     var base = backendBase();
     if (!/^https?:\/\/.+/i.test(base)) {
-      paintFoundry(false);
+      setFoundryState("asleep");
       return;
     }
 
@@ -209,11 +240,23 @@
     fetch(base + "/health", {
       method: "GET",
       cache: "no-store",
+      headers: {
+        "ngrok-skip-browser-warning": "1"
+      },
       signal: controller ? controller.signal : undefined
     }).then(function (res) {
-      paintFoundry(res.ok);
+      if (!res.ok) throw new Error("Health check failed");
+      return res.json();
+    }).then(function (data) {
+      if (data && data.ready) {
+        setFoundryState("online");
+      } else if (data && data.ok && !data.ready) {
+        setFoundryState("warming");
+      } else {
+        setFoundryState("asleep");
+      }
     }).catch(function () {
-      paintFoundry(false);
+      setFoundryState("asleep");
     }).then(function () {
       if (cut) clearTimeout(cut);
     });
@@ -282,8 +325,8 @@
   function setBusy(on) {
     running = on;
     document.body.setAttribute("data-busy", on ? "true" : "false");
-    generateBtn.disabled = on;
-    regenerateBtn.disabled = on;
+    generateBtn.disabled = on || !foundryReady;
+    regenerateBtn.disabled = on || !foundryReady;
     document.querySelectorAll("[data-count], [data-ratio]").forEach(function (btn) {
       btn.disabled = on;
     });
@@ -457,9 +500,21 @@
   function requestImage(base, request) {
     return fetch(base + "/generate", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "1"
+      },
       body: JSON.stringify({ prompt: request.prompt, count: 1, ratio: request.ratio })
+    }).catch(function () {
+      var error = new Error(OFFLINE);
+      error.offline = true;
+      throw error;
     }).then(function (res) {
+      if (res.status === 503) {
+        var err503 = new Error("Foundry is warming up, try again in a minute.");
+        err503.isWarming = true;
+        throw err503;
+      }
       if (!res.ok) throw new Error("The foundry answered with " + res.status + ".");
       return res.json();
     }).then(function (data) {
@@ -474,10 +529,6 @@
         width: Number(data.width) || 0,
         height: Number(data.height) || 0
       };
-    }, function () {
-      var error = new Error(OFFLINE);
-      error.offline = true;
-      throw error;
     });
   }
 
@@ -544,9 +595,11 @@
     chain.then(function () {
       setBusy(false);
       if (failure) {
-        var message = failure.offline ? OFFLINE : (failure.message || OFFLINE);
+        var message = failure.isWarming
+          ? "Foundry is warming up, try again in a minute."
+          : (failure.offline ? OFFLINE : (failure.message || OFFLINE));
         setStatus(message, "error");
-        if (failure.offline) checkHealth();
+        if (failure.offline || failure.isWarming) checkHealth();
       } else {
         setStatus(images.length + (images.length === 1 ? " image" : " images") + " ready.", "ok");
       }
