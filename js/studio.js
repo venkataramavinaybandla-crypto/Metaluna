@@ -1,12 +1,16 @@
 /* =========================================================================
-   Metalune — Image Foundry
-   Sequential single-image casting so each frame lands as soon as it cools.
+   Metaluna — Image Studio
+   One image per request so each frame lands as soon as it is ready.
    ========================================================================= */
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "metalune.imageFoundry.backend";
+  const SECONDS_PER_IMAGE = 80;
+
+  var BACKEND_KEY = "metalune.imageFoundry.backend";
+  var NOTEBOOK_KEY = "metalune.imageStudio.notebook";
   var DEFAULT_BACKEND = "https://engaged-hills-rational-probability.trycloudflare.com";
+  var DEFAULT_NOTEBOOK = "https://colab.research.google.com/";
   var RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
   var OFFLINE = "Backend offline. Paste a fresh URL from Colab.";
   var HINT = "Name your set first";
@@ -15,14 +19,14 @@
 
   var promptEl = $("prompt");
   var nameEl = $("set-name");
-  var backendEl = $("backend-url");
-  var backendState = $("backend-state");
   var form = $("studio-form");
   var generateBtn = $("generate");
   var genLabel = $("gen-label");
   var genRing = $("gen-ring");
   var timerEl = $("timer");
   var timerValue = $("timer-value");
+  var timerEst = $("timer-est");
+  var overrunEl = $("overrun");
   var regenerateBtn = $("regenerate");
   var statusEl = $("status");
   var grid = $("results");
@@ -35,14 +39,26 @@
   var downloadAllLabel = $("download-all-label");
   var downloadHint = $("download-hint");
   var nameHint = $("name-hint");
-  var foundryState = $("foundry-state");
   var ratioReadout = $("ratio-readout");
+  var countEst = $("count-est");
+  var foundryPill = $("foundry-pill");
+  var foundryLabel = $("foundry-label");
+  var foundryWake = $("foundry-wake");
+  var wakeBtn = $("wake-foundry");
   var lightbox = $("lightbox");
   var lbImage = $("lb-image");
   var lbIndex = $("lb-index");
   var lbName = $("lb-name");
   var lbPrev = $("lb-prev");
   var lbNext = $("lb-next");
+  var settings = $("settings");
+  var settingsScrim = $("settings-scrim");
+  var openSettingsBtn = $("open-settings");
+  var closeSettingsBtn = $("close-settings");
+  var backendEl = $("backend-url");
+  var backendNote = $("backend-state");
+  var notebookEl = $("notebook-url");
+  var notebookNote = $("notebook-state");
 
   var count = 2;
   var ratio = "1:1";
@@ -51,10 +67,13 @@
   var lastRequest = null;
   var running = false;
   var zipping = false;
-  var startedAt = 0;
+  var runStartedAt = 0;
+  var imageStartedAt = 0;
   var elapsedMs = 0;
   var tickId = null;
-  var saveId = null;
+  var backendSaveId = null;
+  var notebookSaveId = null;
+  var healthTimer = null;
   var lbAt = 0;
 
   /* ---------------------------------------------------------------- utils */
@@ -62,8 +81,13 @@
   function pad(n) { return String(n).padStart(2, "0"); }
 
   function formatClock(ms) {
-    var total = Math.floor(ms / 1000);
+    var total = Math.max(0, Math.floor(ms / 1000));
     return pad(Math.floor(total / 60)) + ":" + pad(total % 60);
+  }
+
+  function formatEstimate(seconds) {
+    var total = Math.max(0, Math.round(seconds));
+    return Math.floor(total / 60) + ":" + pad(total % 60);
   }
 
   function sanitizeName(raw) {
@@ -105,34 +129,136 @@
     else statusEl.removeAttribute("data-tone");
   }
 
-  function setFoundry(label) {
-    var span = foundryState.querySelector("span");
-    if (span) span.textContent = label;
-  }
-
   function backendBase() {
     return backendEl.value.trim().replace(/\/+$/, "");
   }
 
-  /* --------------------------------------------------------------- backend */
+  function notebookLink() {
+    return notebookEl.value.trim() || DEFAULT_NOTEBOOK;
+  }
 
-  function loadBackend() {
-    var saved = null;
-    try { saved = localStorage.getItem(STORAGE_KEY); } catch (err) { saved = null; }
-    backendEl.value = saved || DEFAULT_BACKEND;
+  /* --------------------------------------------------------------- storage */
+
+  function readStore(key) {
+    try { return localStorage.getItem(key); } catch (err) { return null; }
+  }
+
+  function writeStore(key, value) {
+    try {
+      if (value) localStorage.setItem(key, value);
+      else localStorage.removeItem(key);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function loadSettings() {
+    backendEl.value = readStore(BACKEND_KEY) || DEFAULT_BACKEND;
+    notebookEl.value = readStore(NOTEBOOK_KEY) || DEFAULT_NOTEBOOK;
+    wakeBtn.href = notebookLink();
   }
 
   function persistBackend() {
-    var value = backendEl.value.trim();
-    try {
-      if (value) localStorage.setItem(STORAGE_KEY, value);
-      else localStorage.removeItem(STORAGE_KEY);
-      backendState.textContent = value ? "saved locally" : "not set";
-      backendState.classList.toggle("is-live", Boolean(value));
-    } catch (err) {
-      backendState.textContent = "could not save";
-      backendState.classList.remove("is-live");
+    var value = backendBase();
+    if (writeStore(BACKEND_KEY, value)) {
+      backendNote.textContent = "Saved in this browser.";
+      backendNote.classList.add("is-saved");
+      backendNote.classList.remove("is-error");
+    } else {
+      backendNote.textContent = "This browser blocked local storage.";
+      backendNote.classList.add("is-error");
+      backendNote.classList.remove("is-saved");
     }
+    startHealthLoop();
+  }
+
+  function persistNotebook() {
+    var value = notebookEl.value.trim();
+    if (writeStore(NOTEBOOK_KEY, value)) {
+      notebookNote.textContent = "Saved in this browser.";
+      notebookNote.classList.add("is-saved");
+      notebookNote.classList.remove("is-error");
+    } else {
+      notebookNote.textContent = "This browser blocked local storage.";
+      notebookNote.classList.add("is-error");
+      notebookNote.classList.remove("is-saved");
+    }
+    wakeBtn.href = notebookLink();
+  }
+
+  /* --------------------------------------------------------------- health */
+
+  function paintFoundry(online) {
+    foundryPill.setAttribute("data-state", online ? "online" : "offline");
+    foundryLabel.textContent = online ? "Foundry online" : "Foundry asleep";
+    foundryWake.hidden = online;
+    wakeBtn.href = notebookLink();
+  }
+
+  function checkHealth() {
+    var base = backendBase();
+    if (!/^https?:\/\/.+/i.test(base)) {
+      paintFoundry(false);
+      return;
+    }
+
+    var controller = window.AbortController ? new AbortController() : null;
+    var cut = controller ? setTimeout(function () { controller.abort(); }, 7000) : null;
+
+    fetch(base + "/health", {
+      method: "GET",
+      cache: "no-store",
+      signal: controller ? controller.signal : undefined
+    }).then(function (res) {
+      paintFoundry(res.ok);
+    }).catch(function () {
+      paintFoundry(false);
+    }).then(function () {
+      if (cut) clearTimeout(cut);
+    });
+  }
+
+  function startHealthLoop() {
+    if (healthTimer) clearInterval(healthTimer);
+    checkHealth();
+    healthTimer = setInterval(checkHealth, 10000);
+  }
+
+  /* ----------------------------------------------------------------- timing */
+
+  function updateEstimate() {
+    countEst.textContent = "~" + formatEstimate(SECONDS_PER_IMAGE) +
+      " per image, about " + formatEstimate(count * SECONDS_PER_IMAGE) + " total";
+  }
+
+  function startTimer(total) {
+    stopTimer();
+    runStartedAt = Date.now();
+    imageStartedAt = runStartedAt;
+    elapsedMs = 0;
+    timerValue.textContent = "00:00";
+    timerEst.textContent = "of about " + formatEstimate(total * SECONDS_PER_IMAGE);
+    overrunEl.hidden = true;
+    tickId = setInterval(function () {
+      elapsedMs = Date.now() - runStartedAt;
+      timerValue.textContent = formatClock(elapsedMs);
+      if (running && Date.now() - imageStartedAt > SECONDS_PER_IMAGE * 1000) {
+        overrunEl.hidden = false;
+      }
+    }, 250);
+  }
+
+  function stopTimer() {
+    if (tickId) clearInterval(tickId);
+    tickId = null;
+    if (runStartedAt) elapsedMs = Date.now() - runStartedAt;
+    overrunEl.hidden = true;
+  }
+
+  function beginImage() {
+    imageStartedAt = Date.now();
+    overrunEl.hidden = true;
   }
 
   /* ----------------------------------------------------------- form state */
@@ -143,6 +269,7 @@
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
     $("count-thumb").style.setProperty("--i", String(count - 1));
+    updateEstimate();
   }
 
   function syncRatio() {
@@ -161,11 +288,9 @@
       btn.disabled = on;
     });
     stage.classList.toggle("is-generating", on);
-    setFoundry(on ? "Casting…" : "Foundry idle");
     if (on) {
       genRing.style.setProperty("--p", "0");
       timerEl.hidden = false;
-      startTimer();
     } else {
       stopTimer();
       genLabel.textContent = "Generate set";
@@ -173,28 +298,12 @@
     }
   }
 
-  function startTimer() {
-    stopTimer();
-    startedAt = Date.now();
-    timerValue.textContent = "00:00";
-    tickId = setInterval(function () {
-      elapsedMs = Date.now() - startedAt;
-      timerValue.textContent = formatClock(elapsedMs);
-    }, 200);
-  }
-
-  function stopTimer() {
-    if (tickId) clearInterval(tickId);
-    tickId = null;
-    if (startedAt) elapsedMs = Date.now() - startedAt;
-  }
-
   function setProgress(index, total) {
     genLabel.textContent = "Image " + Math.min(index + 1, total) + " of " + total;
     genRing.style.setProperty("--p", String((index / total) * 100));
   }
 
-  /* -------------------------------------------------------------- render */
+  /* ------------------------------------------------------------ render */
 
   function createTile(i) {
     var img = images[i];
@@ -207,11 +316,11 @@
     shot.type = "button";
     shot.className = "studio-shot";
     shot.setAttribute("data-open", String(i));
-    shot.setAttribute("aria-label", "Open frame " + (i + 1) + " fullscreen");
+    shot.setAttribute("aria-label", "Open image " + (i + 1) + " fullscreen");
 
     var image = document.createElement("img");
     image.src = img.src;
-    image.alt = "Generated frame " + (i + 1) + " for " + (baseName() || "an untitled set");
+    image.alt = "Generated image " + (i + 1) + " for " + (baseName() || "an untitled set");
     shot.appendChild(image);
 
     var glint = document.createElement("span");
@@ -224,8 +333,7 @@
 
     var meta = document.createElement("span");
     meta.className = "studio-tile-meta";
-    meta.innerHTML = pad(i + 1) + " <i>·</i> " + (lastRequest ? lastRequest.ratio : ratio) +
-      " <i>·</i> " + (img.seconds ? Math.round(img.seconds) + "s" : "—");
+    meta.innerHTML = pad(i + 1) + " <i>·</i> " + (lastRequest ? lastRequest.ratio : ratio);
 
     var dl = document.createElement("button");
     dl.type = "button";
@@ -245,17 +353,15 @@
     emptyEl.hidden = has;
     grid.hidden = !has;
     stageFoot.hidden = !has;
-    stageTitle.textContent = has ? (baseName() || "Untitled edition") : "No frames yet";
+    stageTitle.textContent = has ? (baseName() || "Untitled set") : "No images yet";
     stageCount.textContent = pad(images.length) + " / " + pad(requested);
-    if (images.length) {
-      imageAltRefresh();
-    }
+    if (has) imageAltRefresh();
   }
 
   function imageAltRefresh() {
     var label = baseName() || "an untitled set";
     grid.querySelectorAll(".studio-shot img").forEach(function (img, i) {
-      img.alt = "Generated frame " + (i + 1) + " for " + label;
+      img.alt = "Generated image " + (i + 1) + " for " + label;
     });
   }
 
@@ -273,7 +379,7 @@
     syncChrome();
   }
 
-  /* ------------------------------------------------------------ downloads */
+  /* ---------------------------------------------------------- downloads */
 
   function updateDownloads() {
     var base = baseName();
@@ -288,7 +394,7 @@
     downloadAllBtn.disabled = !base || !has || zipping;
     grid.querySelectorAll("[data-download]").forEach(function (btn, i) {
       btn.disabled = !base || !images[i];
-      btn.title = base ? "Download frame " + (i + 1) : HINT;
+      btn.title = base ? "Download image " + (i + 1) : HINT;
     });
   }
 
@@ -336,9 +442,9 @@
       a.click();
       a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-      setStatus("Set packed as " + base + ".zip.", "ok");
+      setStatus("Packed " + base + ".zip.", "ok");
     }).catch(function () {
-      setStatus("Could not pack the set. Try downloading the frames one by one.", "error");
+      setStatus("Could not pack the set. Try downloading the images one by one.", "error");
     }).finally(function () {
       zipping = false;
       downloadAllLabel.textContent = "Download all";
@@ -346,7 +452,7 @@
     });
   }
 
-  /* ------------------------------------------------------------- generate */
+  /* ------------------------------------------------------------ generate */
 
   function requestImage(base, request) {
     return fetch(base + "/generate", {
@@ -366,8 +472,7 @@
         src: src,
         ext: extFor(src),
         width: Number(data.width) || 0,
-        height: Number(data.height) || 0,
-        seconds: Number(data.seconds) || 0
+        height: Number(data.height) || 0
       };
     }, function () {
       var error = new Error(OFFLINE);
@@ -381,7 +486,8 @@
 
     var base = backendBase();
     if (!/^https?:\/\/.+/i.test(base)) {
-      setStatus("Add the backend URL from Colab first.", "error");
+      setStatus("Add the backend URL in settings first.", "error");
+      openSettings();
       backendEl.focus();
       return;
     }
@@ -394,7 +500,7 @@
     var prompt = String(source.prompt || "").trim();
 
     if (!prompt) {
-      setStatus("Describe your set before casting.", "error");
+      setStatus("Describe the image first.", "error");
       promptEl.focus();
       return;
     }
@@ -410,10 +516,10 @@
     images = [];
     resetStage();
     setStatus("");
-    persistBackend();
 
     regenerateBtn.hidden = false;
     setBusy(true);
+    startTimer(req.count);
 
     var failure = null;
 
@@ -422,6 +528,7 @@
       (function (index) {
         chain = chain.then(function () {
           if (failure) return null;
+          beginImage();
           setProgress(index, req.count);
           return requestImage(base, req).then(function (img) {
             images.push(img);
@@ -439,12 +546,9 @@
       if (failure) {
         var message = failure.offline ? OFFLINE : (failure.message || OFFLINE);
         setStatus(message, "error");
-        setFoundry(failure.offline ? "Line cut" : "Foundry idle");
+        if (failure.offline) checkHealth();
       } else {
-        setStatus(
-          images.length + (images.length === 1 ? " frame" : " frames") + " developed in " + formatClock(elapsedMs) + ".",
-          "ok"
-        );
+        setStatus(images.length + (images.length === 1 ? " image" : " images") + " ready.", "ok");
       }
     });
   }
@@ -460,7 +564,7 @@
     var img = images[lbAt];
     if (!img) return;
     lbImage.src = img.src;
-    lbImage.alt = "Generated frame " + (lbAt + 1) + " for " + (baseName() || "an untitled set");
+    lbImage.alt = "Generated image " + (lbAt + 1) + " for " + (baseName() || "an untitled set");
     lbIndex.textContent = pad(lbAt + 1) + " / " + pad(images.length);
     lbName.textContent = lightboxName();
     var single = images.length < 2;
@@ -479,7 +583,7 @@
 
   function closeLightbox() {
     lightbox.hidden = true;
-    document.body.classList.remove("is-locked");
+    if (settings.hidden) document.body.classList.remove("is-locked");
     lbImage.removeAttribute("src");
   }
 
@@ -489,13 +593,31 @@
     paintLightbox();
   }
 
+  /* ------------------------------------------------------------- settings */
+
+  function openSettings() {
+    settings.hidden = false;
+    settingsScrim.hidden = false;
+    document.body.classList.add("is-locked");
+    openSettingsBtn.setAttribute("aria-expanded", "true");
+    backendEl.focus();
+    backendEl.select();
+  }
+
+  function closeSettings() {
+    settings.hidden = true;
+    settingsScrim.hidden = true;
+    openSettingsBtn.setAttribute("aria-expanded", "false");
+    if (lightbox.hidden) document.body.classList.remove("is-locked");
+  }
+
   /* --------------------------------------------------------------- events */
 
-  loadBackend();
-  persistBackend();
+  loadSettings();
   syncCount();
   syncRatio();
   updateDownloads();
+  startHealthLoop();
 
   document.querySelectorAll("[data-count]").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -534,13 +656,27 @@
   });
 
   backendEl.addEventListener("input", function () {
-    backendState.textContent = "unsaved";
-    backendState.classList.remove("is-live");
-    if (saveId) clearTimeout(saveId);
-    saveId = setTimeout(persistBackend, 700);
+    backendNote.textContent = "Unsaved changes.";
+    backendNote.classList.remove("is-saved", "is-error");
+    if (backendSaveId) clearTimeout(backendSaveId);
+    backendSaveId = setTimeout(persistBackend, 700);
   });
 
   backendEl.addEventListener("change", persistBackend);
+
+  notebookEl.addEventListener("input", function () {
+    notebookNote.textContent = "Unsaved changes.";
+    notebookNote.classList.remove("is-saved", "is-error");
+    wakeBtn.href = notebookLink();
+    if (notebookSaveId) clearTimeout(notebookSaveId);
+    notebookSaveId = setTimeout(persistNotebook, 700);
+  });
+
+  notebookEl.addEventListener("change", persistNotebook);
+
+  openSettingsBtn.addEventListener("click", openSettings);
+  closeSettingsBtn.addEventListener("click", closeSettings);
+  settingsScrim.addEventListener("click", closeSettings);
 
   grid.addEventListener("click", function (event) {
     var openBtn = event.target.closest("[data-open]");
@@ -564,6 +700,13 @@
   lbNext.addEventListener("click", function () { stepLightbox(1); });
 
   document.addEventListener("keydown", function (event) {
+    if (!settings.hidden) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSettings();
+      }
+      return;
+    }
     if (lightbox.hidden) return;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -575,5 +718,9 @@
       event.preventDefault();
       stepLightbox(-1);
     }
+  });
+
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) checkHealth();
   });
 })();
