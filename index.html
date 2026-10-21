@@ -332,9 +332,16 @@
         <span>Starred</span>
       </button>
     </div>
-    <button class="settings-close" id="close-collection" type="button" aria-label="Close collection panel">
-      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-    </button>
+    <div class="collection-head-actions">
+      <button class="collection-att-add is-head-add" id="collection-head-add" type="button" aria-label="Add attachment" title="Add attachment" hidden>
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+        <span>Add</span>
+      </button>
+      <input type="file" id="collection-head-file" accept="image/*" multiple hidden>
+      <button class="settings-close" id="close-collection" type="button" aria-label="Close collection panel">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
   </div>
 
   <div class="collection-body">

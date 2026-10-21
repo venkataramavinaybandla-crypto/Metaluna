@@ -468,6 +468,85 @@
     });
   }
 
+  function ensureActiveSession() {
+    if (activeSession) return Promise.resolve(activeSession);
+    if (allSessions && allSessions.length > 0) {
+      activateSession(allSessions[0]);
+      return Promise.resolve(allSessions[0]);
+    }
+    var newSess = {
+      id: "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+      name: "Atelier 01",
+      createdAt: Date.now()
+    };
+    return dbPut("sessions", newSess).then(function () {
+      allSessions.push(newSess);
+      activateSession(newSess);
+      return newSess;
+    });
+  }
+
+  function handleUploadFiles(files, targetItemKey, noticeEl) {
+    if (!files || !files.length) return Promise.resolve();
+    var chain = Promise.resolve();
+    files.forEach(function (file) {
+      chain = chain.then(function () {
+        return downscaleImage(file, noticeEl).then(function (dataUrl) {
+          if (!dataUrl) return;
+          if (targetItemKey) {
+            var record = {
+              id: "att_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+              itemKey: targetItemKey,
+              dataUrl: dataUrl,
+              createdAt: Date.now()
+            };
+            return dbPutAttachment(record).catch(function () {
+              showAttNotice(noticeEl, "Quota exceeded");
+            });
+          } else {
+            var blob = dataURItoBlob(dataUrl);
+            if (!blob) return;
+            var promptName = file.name ? file.name.replace(/\.[^/.]+$/, "") : "Attachment";
+            if (activeCollectionTab === "memory") {
+              return ensureActiveSession().then(function (sess) {
+                var memRec = {
+                  id: "mem_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+                  sessionId: sess.id,
+                  blob: blob,
+                  prompt: promptName,
+                  createdAt: Date.now(),
+                  selected: false,
+                  note: ""
+                };
+                return dbPut("memory", memRec);
+              }).catch(function () {
+                showAttNotice(noticeEl, "Storage failed");
+              });
+            } else {
+              var starRec = {
+                id: "star_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+                blob: blob,
+                prompt: promptName,
+                createdAt: Date.now(),
+                selected: false,
+                note: ""
+              };
+              return dbPut("stars", starRec).catch(function () {
+                showAttNotice(noticeEl, "Storage failed");
+              });
+            }
+          }
+        });
+      });
+    });
+    return chain.then(function () {
+      updateBadges();
+      if (collectionPanel && !collectionPanel.hidden) {
+        renderCollection();
+      }
+    });
+  }
+
   function renderItemAttachments(barEl, itemKey, noticeEl) {
     barEl.innerHTML = "";
     var fileInput = document.createElement("input");
@@ -490,25 +569,8 @@
     fileInput.addEventListener("change", function () {
       var files = Array.from(fileInput.files || []);
       if (!files.length) return;
-      var chain = Promise.resolve();
-      files.forEach(function (file) {
-        chain = chain.then(function () {
-          return downscaleImage(file, noticeEl).then(function (dataUrl) {
-            if (!dataUrl) return;
-            var record = {
-              id: "att_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-              itemKey: itemKey,
-              dataUrl: dataUrl,
-              createdAt: Date.now()
-            };
-            return dbPutAttachment(record).catch(function () {
-              showAttNotice(noticeEl, "Quota exceeded");
-            });
-          });
-        });
-      });
-      chain.then(function () {
-        fileInput.value = "";
+      fileInput.value = "";
+      handleUploadFiles(files, itemKey, noticeEl).then(function () {
         renderItemAttachments(barEl, itemKey, noticeEl);
       });
     });
@@ -1528,6 +1590,12 @@
       if (starredEmpty) starredEmpty.hidden = true;
 
       if (!activeSession) {
+        if (patinaEnabled) {
+          ensureActiveSession().then(function () {
+            renderCollection();
+          });
+          return;
+        }
         if (memoryEmpty) memoryEmpty.hidden = false;
         return;
       }
@@ -1535,7 +1603,32 @@
       dbGetSessionMemory(activeSession.id).then(function (mems) {
         if (memoryBadge) memoryBadge.textContent = String(mems.length);
         if (mems.length === 0) {
-          if (memoryEmpty) memoryEmpty.hidden = false;
+          if (patinaEnabled) {
+            if (memoryEmpty) memoryEmpty.hidden = true;
+            var emptyBox = document.createElement("div");
+            emptyBox.className = "collection-empty-box";
+            emptyBox.innerHTML = '<p class="collection-empty-tip">No images saved to this session yet.</p>' +
+              '<button type="button" class="collection-att-add is-empty-add" aria-label="Add attachment"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add attachment</span></button>' +
+              '<p class="collection-paste-tip">or paste with Ctrl + V</p>' +
+              '<span class="collection-att-notice" role="status" hidden></span>';
+            var emptyInput = document.createElement("input");
+            emptyInput.type = "file";
+            emptyInput.accept = "image/*";
+            emptyInput.multiple = true;
+            emptyInput.hidden = true;
+            emptyBox.appendChild(emptyInput);
+            var notice = emptyBox.querySelector(".collection-att-notice");
+            var btn = emptyBox.querySelector(".is-empty-add");
+            btn.addEventListener("click", function () { emptyInput.click(); });
+            emptyInput.addEventListener("change", function () {
+              var files = Array.from(emptyInput.files || []);
+              emptyInput.value = "";
+              handleUploadFiles(files, null, notice);
+            });
+            collectionGrid.appendChild(emptyBox);
+          } else {
+            if (memoryEmpty) memoryEmpty.hidden = false;
+          }
           return;
         }
         if (memoryEmpty) memoryEmpty.hidden = true;
@@ -1599,7 +1692,32 @@
       dbGetStars().then(function (stars) {
         if (starredBadge) starredBadge.textContent = String(stars.length);
         if (stars.length === 0) {
-          if (starredEmpty) starredEmpty.hidden = false;
+          if (patinaEnabled) {
+            if (starredEmpty) starredEmpty.hidden = true;
+            var emptyBox = document.createElement("div");
+            emptyBox.className = "collection-empty-box";
+            emptyBox.innerHTML = '<p class="collection-empty-tip">No starred images saved yet.</p>' +
+              '<button type="button" class="collection-att-add is-empty-add" aria-label="Add attachment"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add attachment</span></button>' +
+              '<p class="collection-paste-tip">or paste with Ctrl + V</p>' +
+              '<span class="collection-att-notice" role="status" hidden></span>';
+            var emptyInput = document.createElement("input");
+            emptyInput.type = "file";
+            emptyInput.accept = "image/*";
+            emptyInput.multiple = true;
+            emptyInput.hidden = true;
+            emptyBox.appendChild(emptyInput);
+            var notice = emptyBox.querySelector(".collection-att-notice");
+            var btn = emptyBox.querySelector(".is-empty-add");
+            btn.addEventListener("click", function () { emptyInput.click(); });
+            emptyInput.addEventListener("change", function () {
+              var files = Array.from(emptyInput.files || []);
+              emptyInput.value = "";
+              handleUploadFiles(files, null, notice);
+            });
+            collectionGrid.appendChild(emptyBox);
+          } else {
+            if (starredEmpty) starredEmpty.hidden = false;
+          }
           return;
         }
         if (starredEmpty) starredEmpty.hidden = true;
@@ -1896,9 +2014,15 @@
   closeSettingsBtn.addEventListener("click", closeSettings);
   settingsScrim.addEventListener("click", closeSettings);
 
+  var collectionHeadAdd = $("collection-head-add");
+  var collectionHeadFile = $("collection-head-file");
+
   function updatePatinaUI() {
     if (patinaToggle) {
       patinaToggle.setAttribute("aria-checked", patinaEnabled ? "true" : "false");
+    }
+    if (collectionHeadAdd) {
+      collectionHeadAdd.hidden = !patinaEnabled;
     }
   }
 
@@ -1919,6 +2043,37 @@
       }
     });
   }
+
+  if (collectionHeadAdd && collectionHeadFile) {
+    collectionHeadAdd.addEventListener("click", function () {
+      collectionHeadFile.click();
+    });
+    collectionHeadFile.addEventListener("change", function () {
+      var files = Array.from(collectionHeadFile.files || []);
+      collectionHeadFile.value = "";
+      handleUploadFiles(files, null, null);
+    });
+  }
+
+  document.addEventListener("paste", function (e) {
+    if (!patinaEnabled) return;
+    var cd = e.clipboardData || (window.clipboardData);
+    if (!cd || !cd.items) return;
+    var imageFiles = [];
+    for (var i = 0; i < cd.items.length; i++) {
+      if (cd.items[i].type && cd.items[i].type.indexOf("image") !== -1) {
+        var f = cd.items[i].getAsFile();
+        if (f) imageFiles.push(f);
+      }
+    }
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      if (collectionPanel && collectionPanel.hidden) {
+        openCollection(activeCollectionTab || "memory");
+      }
+      handleUploadFiles(imageFiles, null, null);
+    }
+  });
 
   downloadAllBtn.addEventListener("click", downloadAll);
 
