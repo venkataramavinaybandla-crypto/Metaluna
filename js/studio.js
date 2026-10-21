@@ -28,6 +28,7 @@
   var timerEst = $("timer-est");
   var overrunEl = $("overrun");
   var regenerateBtn = $("regenerate");
+  var stopBtn = $("stop");
   var statusEl = $("status");
   var grid = $("results");
   var emptyEl = $("stage-empty");
@@ -65,6 +66,9 @@
   var images = [];
   var requested = 0;
   var lastRequest = null;
+  var currentRunId = 0;
+  var abortController = null;
+  var stopped = false;
   var running = false;
   var zipping = false;
   var runStartedAt = 0;
@@ -331,6 +335,7 @@
       btn.disabled = on;
     });
     stage.classList.toggle("is-generating", on);
+    if (stopBtn) stopBtn.hidden = !on;
     if (on) {
       genRing.style.setProperty("--p", "0");
       timerEl.hidden = false;
@@ -339,6 +344,20 @@
       genLabel.textContent = "Generate set";
       genRing.style.setProperty("--p", "0");
     }
+  }
+
+  function stopRun() {
+    if (!running) return;
+    stopped = true;
+    if (abortController) {
+      abortController.abort();
+    }
+    setBusy(false);
+    stopTimer();
+    timerEl.hidden = true;
+    timerValue.textContent = "00:00";
+    setStatus("Stopped. Kept " + images.length + " of " + requested + ".");
+    updateDownloads();
   }
 
   function setProgress(index, total) {
@@ -497,15 +516,19 @@
 
   /* ------------------------------------------------------------ generate */
 
-  function requestImage(base, request) {
+  function requestImage(base, request, signal) {
     return fetch(base + "/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "1"
       },
-      body: JSON.stringify({ prompt: request.prompt, count: 1, ratio: request.ratio })
-    }).catch(function () {
+      body: JSON.stringify({ prompt: request.prompt, count: 1, ratio: request.ratio }),
+      signal: signal
+    }).catch(function (err) {
+      if (err && (err.name === "AbortError" || (signal && signal.aborted))) {
+        throw err;
+      }
       var error = new Error(OFFLINE);
       error.offline = true;
       throw error;
@@ -562,6 +585,10 @@
       ratio: RATIOS.indexOf(source.ratio) > -1 ? source.ratio : ratio
     };
 
+    var runId = ++currentRunId;
+    stopped = false;
+    abortController = window.AbortController ? new AbortController() : null;
+
     lastRequest = req;
     requested = req.count;
     images = [];
@@ -578,14 +605,20 @@
     for (var i = 0; i < req.count; i += 1) {
       (function (index) {
         chain = chain.then(function () {
-          if (failure) return null;
+          if (runId !== currentRunId || stopped || failure) return null;
           beginImage();
           setProgress(index, req.count);
-          return requestImage(base, req).then(function (img) {
+          return requestImage(base, req, abortController ? abortController.signal : null).then(function (img) {
+            if (runId !== currentRunId || stopped || (abortController && abortController.signal.aborted)) return;
             images.push(img);
             render();
             genRing.style.setProperty("--p", String(((index + 1) / req.count) * 100));
           }).catch(function (err) {
+            if (runId !== currentRunId) return;
+            if (err && (err.name === "AbortError" || (abortController && abortController.signal.aborted))) {
+              stopped = true;
+              return;
+            }
             failure = err;
           });
         });
@@ -593,8 +626,22 @@
     }
 
     chain.then(function () {
+      if (runId !== currentRunId) return;
+      if (stopped) {
+        setBusy(false);
+        stopTimer();
+        timerEl.hidden = true;
+        timerValue.textContent = "00:00";
+        setStatus("Stopped. Kept " + images.length + " of " + requested + ".");
+        updateDownloads();
+        return;
+      }
       setBusy(false);
       if (failure) {
+        if (failure.name === "AbortError" || (failure.message && failure.message.indexOf("abort") !== -1)) {
+          setStatus("Stopped. Kept " + images.length + " of " + requested + ".");
+          return;
+        }
         var message = failure.isWarming
           ? "Foundry is warming up, try again in a minute."
           : (failure.offline ? OFFLINE : (failure.message || OFFLINE));
@@ -692,6 +739,10 @@
     event.preventDefault();
     run(null);
   });
+
+  if (stopBtn) {
+    stopBtn.addEventListener("click", stopRun);
+  }
 
   regenerateBtn.addEventListener("click", function () {
     if (running || !lastRequest) return;

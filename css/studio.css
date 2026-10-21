@@ -924,7 +924,8 @@
   white-space: nowrap;
 }
 
-.studio-regenerate {
+.studio-regenerate,
+.studio-stop {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -941,16 +942,19 @@
   transition: background 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
-.studio-regenerate .material-symbols-outlined {
+.studio-regenerate .material-symbols-outlined,
+.studio-stop .material-symbols-outlined {
   font-size: 18px;
 }
 
-.studio-regenerate:hover:not(:disabled) {
+.studio-regenerate:hover:not(:disabled),
+.studio-stop:hover:not(:disabled) {
   background: rgba(168, 156, 242, 0.16);
   border-color: rgba(214, 206, 255, 0.36);
 }
 
-.studio-regenerate:disabled {
+.studio-regenerate:disabled,
+.studio-stop:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
