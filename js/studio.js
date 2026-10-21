@@ -61,6 +61,50 @@
   var notebookEl = $("notebook-url");
   var notebookNote = $("notebook-state");
 
+  /* Sessions, Memory & Starred Elements */
+  var gateEl = $("session-gate");
+  var gateForm = $("gate-create-form");
+  var gateNameInput = $("gate-name-input");
+  var gateSubmitBtn = $("gate-submit-btn");
+  var gateError = $("gate-error");
+  var gateList = $("gate-sessions-list");
+  var gateCountLabel = $("gate-count-label");
+  var gateEmptyNote = $("gate-empty-note");
+
+  var sidebarEl = $("studio-sidebar");
+  var sidebarScrim = $("sidebar-scrim");
+  var openSidebarBtn = $("open-sidebar");
+  var closeSidebarBtn = $("close-sidebar");
+  var activeSessionPill = $("active-session-pill");
+  var sidebarNewToggle = $("sidebar-new-toggle");
+  var sidebarNewForm = $("sidebar-new-form");
+  var sidebarNameInput = $("sidebar-name-input");
+  var sidebarNameError = $("sidebar-name-error");
+  var sidebarCreateBtn = $("sidebar-create-btn");
+  var sidebarCancelBtn = $("sidebar-cancel-btn");
+  var sidebarSessionsList = $("sidebar-sessions-list");
+
+  var collectionPanel = $("collection-panel");
+  var collectionScrim = $("collection-scrim");
+  var openMemoryBtn = $("open-memory");
+  var openStarredBtn = $("open-starred");
+  var closeCollectionBtn = $("close-collection");
+  var tabMemory = $("tab-memory");
+  var tabStarred = $("tab-starred");
+  var memoryBadge = $("memory-badge");
+  var starredBadge = $("starred-badge");
+  var memoryEmpty = $("memory-empty");
+  var starredEmpty = $("starred-empty");
+  var collectionGrid = $("collection-grid");
+
+  var DB_NAME = "metaluna";
+  var DB_VERSION = 1;
+  var ACTIVE_SESSION_KEY = "metaluna.activeSessionId";
+  var activeSession = null;
+  var allSessions = [];
+  var activeCollectionTab = "memory";
+  var deleteConfirmId = null;
+
   var count = 2;
   var ratio = "1:1";
   var images = [];
@@ -82,6 +126,208 @@
   var lbAt = 0;
 
   /* ---------------------------------------------------------------- utils */
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatSessionDate(ts) {
+    if (!ts) return "";
+    try {
+      var d = new Date(ts);
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function dataURItoBlob(dataURI) {
+    try {
+      if (!dataURI) return null;
+      var parts = dataURI.split(",");
+      var mimeMatch = parts[0].match(/:(.*?);/);
+      var mime = mimeMatch ? mimeMatch[1] : "image/png";
+      var byteString = atob(parts[1]);
+      var ab = new ArrayBuffer(byteString.length);
+      var ia = new Uint8Array(ab);
+      for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      return new Blob([ab], { type: mime });
+    } catch (err) {
+      console.error("dataURItoBlob failed", err);
+      return null;
+    }
+  }
+
+  /* ----------------------------------------------------------- IndexedDB */
+
+  var dbPromise = null;
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise(function (resolve, reject) {
+      try {
+        var req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = function (e) {
+          var db = e.target.result;
+          if (!db.objectStoreNames.contains("sessions")) {
+            db.createObjectStore("sessions", { keyPath: "id" });
+          }
+          if (!db.objectStoreNames.contains("memory")) {
+            var memStore = db.createObjectStore("memory", { keyPath: "id" });
+            memStore.createIndex("sessionId", "sessionId", { unique: false });
+          }
+          if (!db.objectStoreNames.contains("stars")) {
+            db.createObjectStore("stars", { keyPath: "id" });
+          }
+        };
+        req.onsuccess = function (e) {
+          resolve(e.target.result);
+        };
+        req.onerror = function (e) {
+          reject(e.target.error);
+        };
+      } catch (err) {
+        reject(err);
+      }
+    });
+    return dbPromise;
+  }
+
+  function dbGetAll(storeName) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction(storeName, "readonly");
+          var store = tx.objectStore(storeName);
+          var req = store.getAll();
+          req.onsuccess = function () { resolve(req.result || []); };
+          req.onerror = function () { reject(req.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).catch(function (err) {
+      console.error("dbGetAll error:", storeName, err);
+      return [];
+    });
+  }
+
+  function dbPut(storeName, record) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction(storeName, "readwrite");
+          var store = tx.objectStore(storeName);
+          var req = store.put(record);
+          req.onsuccess = function () { resolve(record); };
+          req.onerror = function () { reject(req.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).catch(function (err) {
+      console.error("dbPut error:", storeName, err);
+      throw err;
+    });
+  }
+
+  function dbDelete(storeName, id) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction(storeName, "readwrite");
+          var store = tx.objectStore(storeName);
+          var req = store.delete(id);
+          req.onsuccess = function () { resolve(true); };
+          req.onerror = function () { reject(req.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).catch(function (err) {
+      console.error("dbDelete error:", storeName, id, err);
+      return false;
+    });
+  }
+
+  function dbDeleteSession(sessionId) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction(["sessions", "memory"], "readwrite");
+          var sessStore = tx.objectStore("sessions");
+          sessStore.delete(sessionId);
+          var memStore = tx.objectStore("memory");
+          var index = memStore.index("sessionId");
+          var req = index.getAllKeys(sessionId);
+          req.onsuccess = function () {
+            var keys = req.result || [];
+            keys.forEach(function (k) { memStore.delete(k); });
+          };
+          tx.oncomplete = function () { resolve(true); };
+          tx.onerror = function () { reject(tx.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).catch(function (err) {
+      console.error("dbDeleteSession error:", sessionId, err);
+      return false;
+    });
+  }
+
+  function dbGetSessionMemory(sessionId) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction("memory", "readonly");
+          var store = tx.objectStore("memory");
+          var index = store.index("sessionId");
+          var req = index.getAll(sessionId);
+          req.onsuccess = function () {
+            var res = req.result || [];
+            res.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+            resolve(res);
+          };
+          req.onerror = function () { reject(req.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).catch(function (err) {
+      console.error("dbGetSessionMemory error:", sessionId, err);
+      return [];
+    });
+  }
+
+  function dbGetStars() {
+    return dbGetAll("stars").then(function (res) {
+      res.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+      return res;
+    });
+  }
+
+  function validateSessionName(raw, sessions, currentId) {
+    var trimmed = String(raw || "").trim();
+    if (trimmed.length < 1 || trimmed.length > 40) {
+      return { valid: false, error: null, trimmed: trimmed };
+    }
+    var lower = trimmed.toLowerCase();
+    var isDup = (sessions || []).some(function (s) {
+      if (currentId && s.id === currentId) return false;
+      return String(s.name || "").trim().toLowerCase() === lower;
+    });
+    if (isDup) {
+      return { valid: false, error: "A session with this name already exists", trimmed: trimmed };
+    }
+    return { valid: true, error: null, trimmed: trimmed };
+  }
 
   function pad(n) { return String(n).padStart(2, "0"); }
 
@@ -397,17 +643,132 @@
     meta.className = "studio-tile-meta";
     meta.innerHTML = pad(i + 1) + " <i>·</i> " + (lastRequest ? lastRequest.ratio : ratio);
 
+    var actions = document.createElement("div");
+    actions.className = "studio-tile-actions";
+
+    var memBtn = document.createElement("button");
+    memBtn.type = "button";
+    memBtn.className = "studio-tile-btn studio-memory-btn" + (img.inMemory ? " is-saved" : "");
+    memBtn.setAttribute("data-memory", String(i));
+    memBtn.disabled = Boolean(img.inMemory);
+    memBtn.title = img.inMemory ? "Saved to session memory" : "Add to memory";
+    memBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' + (img.inMemory ? "bookmark_added" : "history_edu") + '</span><span>' + (img.inMemory ? "Saved" : "Add to memory") + '</span>';
+
+    var starBtn = document.createElement("button");
+    starBtn.type = "button";
+    starBtn.className = "studio-tile-btn studio-star-btn" + (img.isStarred ? " is-starred" : "");
+    starBtn.setAttribute("data-star", String(i));
+    starBtn.title = img.isStarred ? "Starred" : "Star";
+    starBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' + (img.isStarred ? "star" : "star_outline") + '</span><span>' + (img.isStarred ? "Starred" : "Star") + '</span>';
+
     var dl = document.createElement("button");
     dl.type = "button";
     dl.className = "studio-dl";
     dl.setAttribute("data-download", String(i));
-    dl.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">download</span>Download';
+    dl.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">download</span><span>Download</span>';
+
+    actions.appendChild(memBtn);
+    actions.appendChild(starBtn);
+    actions.appendChild(dl);
 
     caption.appendChild(meta);
-    caption.appendChild(dl);
+    caption.appendChild(actions);
     tile.appendChild(shot);
     tile.appendChild(caption);
     return tile;
+  }
+
+  function handleAddToMemory(index) {
+    if (!activeSession) return;
+    var img = images[index];
+    if (!img || img.inMemory) return;
+
+    var blob = dataURItoBlob(img.src);
+    if (!blob) return;
+
+    var record = {
+      id: "mem_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+      sessionId: activeSession.id,
+      blob: blob,
+      prompt: img.prompt || (lastRequest ? lastRequest.prompt : promptEl.value) || "",
+      createdAt: Date.now(),
+      selected: false,
+      note: ""
+    };
+
+    dbPut("memory", record).then(function () {
+      img.inMemory = true;
+      img.memoryId = record.id;
+      updateTileActions(index);
+      updateBadges();
+      if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "memory") {
+        renderCollection();
+      }
+    });
+  }
+
+  function handleToggleStar(index) {
+    var img = images[index];
+    if (!img) return;
+
+    if (img.isStarred) {
+      var starId = img.starId;
+      if (starId) {
+        dbDelete("stars", starId).then(function () {
+          img.isStarred = false;
+          img.starId = null;
+          updateTileActions(index);
+          updateBadges();
+          if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "starred") {
+            renderCollection();
+          }
+        });
+      }
+    } else {
+      var blob = dataURItoBlob(img.src);
+      if (!blob) return;
+
+      var record = {
+        id: "star_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+        blob: blob,
+        prompt: img.prompt || (lastRequest ? lastRequest.prompt : promptEl.value) || "",
+        createdAt: Date.now(),
+        selected: false,
+        note: ""
+      };
+
+      dbPut("stars", record).then(function () {
+        img.isStarred = true;
+        img.starId = record.id;
+        updateTileActions(index);
+        updateBadges();
+        if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "starred") {
+          renderCollection();
+        }
+      });
+    }
+  }
+
+  function updateTileActions(index) {
+    var tile = grid.children[index];
+    if (!tile) return;
+    var img = images[index];
+    if (!img) return;
+
+    var memBtn = tile.querySelector("[data-memory]");
+    if (memBtn) {
+      memBtn.disabled = Boolean(img.inMemory);
+      memBtn.className = "studio-tile-btn studio-memory-btn" + (img.inMemory ? " is-saved" : "");
+      memBtn.title = img.inMemory ? "Saved to session memory" : "Add to memory";
+      memBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' + (img.inMemory ? "bookmark_added" : "history_edu") + '</span><span>' + (img.inMemory ? "Saved" : "Add to memory") + '</span>';
+    }
+
+    var starBtn = tile.querySelector("[data-star]");
+    if (starBtn) {
+      starBtn.className = "studio-tile-btn studio-star-btn" + (img.isStarred ? " is-starred" : "");
+      starBtn.title = img.isStarred ? "Starred" : "Star";
+      starBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' + (img.isStarred ? "star" : "star_outline") + '</span><span>' + (img.isStarred ? "Starred" : "Star") + '</span>';
+    }
   }
 
   function syncChrome() {
@@ -547,10 +908,16 @@
         throw new Error("The foundry returned no image.");
       }
       return {
+        id: "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
         src: src,
         ext: extFor(src),
+        prompt: request.prompt || "",
         width: Number(data.width) || 0,
-        height: Number(data.height) || 0
+        height: Number(data.height) || 0,
+        inMemory: false,
+        memoryId: null,
+        isStarred: false,
+        starId: null
       };
     });
   }
@@ -693,6 +1060,356 @@
     paintLightbox();
   }
 
+  function openLightboxCustom(src, name, prompt) {
+    lbImage.src = src;
+    lbImage.alt = prompt || "";
+    lbIndex.textContent = "";
+    lbName.textContent = name || "Metaluna still";
+    lbPrev.disabled = true;
+    lbNext.disabled = true;
+    lightbox.hidden = false;
+    document.body.classList.add("is-locked");
+    $("lb-close").focus();
+  }
+
+  function activateSession(session, preserveSidebar) {
+    if (!session) return;
+    activeSession = session;
+    try {
+      localStorage.setItem(ACTIVE_SESSION_KEY, session.id);
+    } catch (e) {}
+
+    if (activeSessionPill) {
+      activeSessionPill.textContent = session.name;
+    }
+    deleteConfirmId = null;
+    hideSessionGate();
+    renderSidebar();
+    updateBadges();
+
+    if (!preserveSidebar && window.innerWidth < 1024) {
+      closeSidebar();
+    }
+
+    if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "memory") {
+      renderCollection();
+    }
+  }
+
+  function showSessionGate() {
+    activeSession = null;
+    if (gateEl) {
+      gateEl.hidden = false;
+      document.body.classList.add("is-locked");
+    }
+    renderGateSessions();
+    if (gateNameInput) {
+      gateNameInput.value = "";
+      validateGateForm();
+    }
+  }
+
+  function hideSessionGate() {
+    if (gateEl) {
+      gateEl.hidden = true;
+      if (settings.hidden && lightbox.hidden && (collectionPanel && collectionPanel.hidden) && (!sidebarEl || !sidebarEl.classList.contains("is-open"))) {
+        document.body.classList.remove("is-locked");
+      }
+    }
+  }
+
+  function validateGateForm() {
+    if (!gateNameInput || !gateSubmitBtn) return;
+    var res = validateSessionName(gateNameInput.value, allSessions);
+    gateSubmitBtn.disabled = !res.valid;
+    if (gateError) {
+      if (res.error) {
+        gateError.hidden = false;
+        gateError.textContent = res.error;
+      } else {
+        gateError.hidden = true;
+      }
+    }
+  }
+
+  function renderGateSessions() {
+    if (!gateList) return;
+    gateList.innerHTML = "";
+    if (gateCountLabel) {
+      gateCountLabel.textContent = allSessions.length + " recorded";
+    }
+    if (gateEmptyNote) {
+      gateEmptyNote.hidden = allSessions.length > 0;
+    }
+
+    allSessions.forEach(function (sess) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "session-gate-item";
+      btn.innerHTML = '<span class="session-gate-item-name">' + escapeHtml(sess.name) + '</span><span class="session-gate-item-meta">' + formatSessionDate(sess.createdAt) + '</span>';
+      btn.addEventListener("click", function () {
+        activateSession(sess);
+      });
+      gateList.appendChild(btn);
+    });
+  }
+
+  function openSidebar() {
+    if (sidebarEl) sidebarEl.classList.add("is-open");
+    if (sidebarScrim) sidebarScrim.hidden = false;
+    document.body.classList.add("is-locked");
+  }
+
+  function closeSidebar() {
+    if (sidebarEl) sidebarEl.classList.remove("is-open");
+    if (sidebarScrim) sidebarScrim.hidden = true;
+    if (settings.hidden && lightbox.hidden && (collectionPanel && collectionPanel.hidden) && (gateEl && gateEl.hidden)) {
+      document.body.classList.remove("is-locked");
+    }
+  }
+
+  function renderSidebar() {
+    if (!sidebarSessionsList) return;
+    sidebarSessionsList.innerHTML = "";
+
+    allSessions.forEach(function (sess) {
+      var item = document.createElement("div");
+      var isActive = activeSession && sess.id === activeSession.id;
+      item.className = "studio-sidebar-item" + (isActive ? " is-active" : "");
+
+      var row = document.createElement("div");
+      row.className = "studio-sidebar-row";
+
+      var selectBtn = document.createElement("button");
+      selectBtn.type = "button";
+      selectBtn.className = "studio-sidebar-btn";
+      selectBtn.innerHTML = '<span class="studio-sidebar-btn-name">' + escapeHtml(sess.name) + '</span><span class="studio-sidebar-btn-date">' + formatSessionDate(sess.createdAt) + '</span>';
+      selectBtn.addEventListener("click", function () {
+        if (!activeSession || sess.id !== activeSession.id) {
+          activateSession(sess);
+        }
+      });
+      row.appendChild(selectBtn);
+
+      var delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "studio-sidebar-del-btn";
+      delBtn.title = "Delete session";
+      delBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">delete</span>';
+      delBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        deleteConfirmId = (deleteConfirmId === sess.id) ? null : sess.id;
+        renderSidebar();
+      });
+      row.appendChild(delBtn);
+
+      item.appendChild(row);
+
+      if (deleteConfirmId === sess.id) {
+        var conf = document.createElement("div");
+        conf.className = "studio-sidebar-confirm";
+        conf.innerHTML = '<span class="studio-sidebar-confirm-label">Delete atelier?</span>' +
+          '<div class="studio-sidebar-confirm-actions">' +
+            '<button type="button" class="studio-sidebar-confirm-btn studio-sidebar-confirm-yes">Delete</button>' +
+            '<button type="button" class="studio-sidebar-confirm-btn studio-sidebar-confirm-no">Cancel</button>' +
+          '</div>';
+
+        conf.querySelector(".studio-sidebar-confirm-yes").addEventListener("click", function () {
+          deleteSession(sess.id);
+        });
+        conf.querySelector(".studio-sidebar-confirm-no").addEventListener("click", function () {
+          deleteConfirmId = null;
+          renderSidebar();
+        });
+        item.appendChild(conf);
+      }
+
+      sidebarSessionsList.appendChild(item);
+    });
+  }
+
+  function deleteSession(id) {
+    dbDeleteSession(id).then(function () {
+      allSessions = allSessions.filter(function (s) { return s.id !== id; });
+      deleteConfirmId = null;
+      if (activeSession && activeSession.id === id) {
+        if (allSessions.length > 0) {
+          activateSession(allSessions[0]);
+        } else {
+          try { localStorage.removeItem(ACTIVE_SESSION_KEY); } catch (e) {}
+          showSessionGate();
+        }
+      } else {
+        renderSidebar();
+      }
+    });
+  }
+
+  function validateSidebarForm() {
+    if (!sidebarNameInput || !sidebarCreateBtn) return;
+    var res = validateSessionName(sidebarNameInput.value, allSessions);
+    sidebarCreateBtn.disabled = !res.valid;
+    if (sidebarNameError) {
+      if (res.error) {
+        sidebarNameError.hidden = false;
+        sidebarNameError.textContent = res.error;
+      } else {
+        sidebarNameError.hidden = true;
+      }
+    }
+  }
+
+  function openCollection(tab) {
+    activeCollectionTab = tab || "memory";
+    if (tabMemory) {
+      tabMemory.classList.toggle("is-active", activeCollectionTab === "memory");
+      tabMemory.setAttribute("aria-selected", activeCollectionTab === "memory" ? "true" : "false");
+    }
+    if (tabStarred) {
+      tabStarred.classList.toggle("is-active", activeCollectionTab === "starred");
+      tabStarred.setAttribute("aria-selected", activeCollectionTab === "starred" ? "true" : "false");
+    }
+    if (collectionPanel) collectionPanel.hidden = false;
+    if (collectionScrim) collectionScrim.hidden = false;
+    document.body.classList.add("is-locked");
+    renderCollection();
+  }
+
+  function closeCollection() {
+    if (collectionPanel) collectionPanel.hidden = true;
+    if (collectionScrim) collectionScrim.hidden = true;
+    if (settings.hidden && lightbox.hidden && (gateEl && gateEl.hidden) && (!sidebarEl || !sidebarEl.classList.contains("is-open"))) {
+      document.body.classList.remove("is-locked");
+    }
+  }
+
+  function renderCollection() {
+    if (!collectionGrid) return;
+    collectionGrid.innerHTML = "";
+
+    if (activeCollectionTab === "memory") {
+      if (memoryEmpty) memoryEmpty.hidden = true;
+      if (starredEmpty) starredEmpty.hidden = true;
+
+      if (!activeSession) {
+        if (memoryEmpty) memoryEmpty.hidden = false;
+        return;
+      }
+
+      dbGetSessionMemory(activeSession.id).then(function (mems) {
+        if (memoryBadge) memoryBadge.textContent = String(mems.length);
+        if (mems.length === 0) {
+          if (memoryEmpty) memoryEmpty.hidden = false;
+          return;
+        }
+        if (memoryEmpty) memoryEmpty.hidden = true;
+
+        mems.forEach(function (item) {
+          var url = URL.createObjectURL(item.blob);
+          var fig = document.createElement("figure");
+          fig.className = "collection-item";
+
+          var shot = document.createElement("button");
+          shot.type = "button";
+          shot.className = "collection-shot";
+          shot.setAttribute("aria-label", "Open image fullscreen");
+          shot.innerHTML = '<img src="' + url + '" alt="' + escapeHtml(item.prompt) + '"/><div class="collection-overlay"><p class="collection-prompt">' + escapeHtml(item.prompt) + '</p></div>';
+          shot.addEventListener("click", function () {
+            openLightboxCustom(url, "Memory · " + (activeSession ? activeSession.name : ""), item.prompt);
+          });
+          fig.appendChild(shot);
+
+          var foot = document.createElement("div");
+          foot.className = "collection-item-foot";
+          foot.innerHTML = '<span class="collection-item-time">' + formatSessionDate(item.createdAt) + '</span>' +
+            '<button type="button" class="collection-remove-btn" title="Remove from memory"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>';
+
+          foot.querySelector(".collection-remove-btn").addEventListener("click", function () {
+            dbDelete("memory", item.id).then(function () {
+              URL.revokeObjectURL(url);
+              images.forEach(function (img, idx) {
+                if (img.memoryId === item.id) {
+                  img.inMemory = false;
+                  img.memoryId = null;
+                  updateTileActions(idx);
+                }
+              });
+              renderCollection();
+              updateBadges();
+            });
+          });
+          fig.appendChild(foot);
+
+          collectionGrid.appendChild(fig);
+        });
+      });
+    } else {
+      if (memoryEmpty) memoryEmpty.hidden = true;
+      if (starredEmpty) starredEmpty.hidden = true;
+
+      dbGetStars().then(function (stars) {
+        if (starredBadge) starredBadge.textContent = String(stars.length);
+        if (stars.length === 0) {
+          if (starredEmpty) starredEmpty.hidden = false;
+          return;
+        }
+        if (starredEmpty) starredEmpty.hidden = true;
+
+        stars.forEach(function (item) {
+          var url = URL.createObjectURL(item.blob);
+          var fig = document.createElement("figure");
+          fig.className = "collection-item";
+
+          var shot = document.createElement("button");
+          shot.type = "button";
+          shot.className = "collection-shot";
+          shot.setAttribute("aria-label", "Open image fullscreen");
+          shot.innerHTML = '<img src="' + url + '" alt="' + escapeHtml(item.prompt) + '"/><div class="collection-overlay"><p class="collection-prompt">' + escapeHtml(item.prompt) + '</p></div>';
+          shot.addEventListener("click", function () {
+            openLightboxCustom(url, "Starred still", item.prompt);
+          });
+          fig.appendChild(shot);
+
+          var foot = document.createElement("div");
+          foot.className = "collection-item-foot";
+          foot.innerHTML = '<span class="collection-item-time">' + formatSessionDate(item.createdAt) + '</span>' +
+            '<button type="button" class="collection-remove-btn" title="Remove star"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>';
+
+          foot.querySelector(".collection-remove-btn").addEventListener("click", function () {
+            dbDelete("stars", item.id).then(function () {
+              URL.revokeObjectURL(url);
+              images.forEach(function (img, idx) {
+                if (img.starId === item.id) {
+                  img.isStarred = false;
+                  img.starId = null;
+                  updateTileActions(idx);
+                }
+              });
+              renderCollection();
+              updateBadges();
+            });
+          });
+          fig.appendChild(foot);
+
+          collectionGrid.appendChild(fig);
+        });
+      });
+    }
+  }
+
+  function updateBadges() {
+    if (activeSession) {
+      dbGetSessionMemory(activeSession.id).then(function (mems) {
+        if (memoryBadge) memoryBadge.textContent = String(mems.length);
+      });
+    } else {
+      if (memoryBadge) memoryBadge.textContent = "0";
+    }
+    dbGetStars().then(function (stars) {
+      if (starredBadge) starredBadge.textContent = String(stars.length);
+    });
+  }
+
   /* ------------------------------------------------------------- settings */
 
   function openSettings() {
@@ -708,7 +1425,9 @@
     settings.hidden = true;
     settingsScrim.hidden = true;
     openSettingsBtn.setAttribute("aria-expanded", "false");
-    if (lightbox.hidden) document.body.classList.remove("is-locked");
+    if (lightbox.hidden && (collectionPanel && collectionPanel.hidden) && (gateEl && gateEl.hidden) && (!sidebarEl || !sidebarEl.classList.contains("is-open"))) {
+      document.body.classList.remove("is-locked");
+    }
   }
 
   /* --------------------------------------------------------------- events */
@@ -718,6 +1437,138 @@
   syncRatio();
   updateDownloads();
   startHealthLoop();
+
+  /* Session Gate Events */
+  if (gateNameInput) {
+    gateNameInput.addEventListener("input", validateGateForm);
+  }
+
+  if (gateForm) {
+    gateForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var res = validateSessionName(gateNameInput.value, allSessions);
+      if (!res.valid) return;
+
+      var newSess = {
+        id: "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+        name: res.trimmed,
+        createdAt: Date.now()
+      };
+
+      dbPut("sessions", newSess).then(function () {
+        allSessions.unshift(newSess);
+        activateSession(newSess);
+      });
+    });
+  }
+
+  /* Sidebar Events */
+  if (openSidebarBtn) {
+    openSidebarBtn.addEventListener("click", openSidebar);
+  }
+
+  if (closeSidebarBtn) {
+    closeSidebarBtn.addEventListener("click", closeSidebar);
+  }
+
+  if (sidebarScrim) {
+    sidebarScrim.addEventListener("click", closeSidebar);
+  }
+
+  if (sidebarNewToggle) {
+    sidebarNewToggle.addEventListener("click", function () {
+      if (sidebarNewForm) {
+        sidebarNewForm.hidden = !sidebarNewForm.hidden;
+        if (!sidebarNewForm.hidden && sidebarNameInput) {
+          sidebarNameInput.value = "";
+          validateSidebarForm();
+          sidebarNameInput.focus();
+        }
+      }
+    });
+  }
+
+  if (sidebarCancelBtn) {
+    sidebarCancelBtn.addEventListener("click", function () {
+      if (sidebarNewForm) sidebarNewForm.hidden = true;
+    });
+  }
+
+  if (sidebarNameInput) {
+    sidebarNameInput.addEventListener("input", validateSidebarForm);
+  }
+
+  if (sidebarNewForm) {
+    sidebarNewForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var res = validateSessionName(sidebarNameInput.value, allSessions);
+      if (!res.valid) return;
+
+      var newSess = {
+        id: "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+        name: res.trimmed,
+        createdAt: Date.now()
+      };
+
+      dbPut("sessions", newSess).then(function () {
+        allSessions.unshift(newSess);
+        sidebarNewForm.hidden = true;
+        activateSession(newSess, true);
+      });
+    });
+  }
+
+  /* Collection Panel Events */
+  if (openMemoryBtn) {
+    openMemoryBtn.addEventListener("click", function () { openCollection("memory"); });
+  }
+
+  if (openStarredBtn) {
+    openStarredBtn.addEventListener("click", function () { openCollection("starred"); });
+  }
+
+  if (closeCollectionBtn) {
+    closeCollectionBtn.addEventListener("click", closeCollection);
+  }
+
+  if (collectionScrim) {
+    collectionScrim.addEventListener("click", closeCollection);
+  }
+
+  if (tabMemory) {
+    tabMemory.addEventListener("click", function () { openCollection("memory"); });
+  }
+
+  if (tabStarred) {
+    tabStarred.addEventListener("click", function () { openCollection("starred"); });
+  }
+
+  /* Tile actions: Memory, Star, Download, Fullscreen */
+  grid.addEventListener("click", function (event) {
+    var memAction = event.target.closest("[data-memory]");
+    if (memAction) {
+      handleAddToMemory(Number(memAction.getAttribute("data-memory")));
+      return;
+    }
+
+    var starAction = event.target.closest("[data-star]");
+    if (starAction) {
+      handleToggleStar(Number(starAction.getAttribute("data-star")));
+      return;
+    }
+
+    var openBtn = event.target.closest("[data-open]");
+    if (openBtn) {
+      openLightbox(Number(openBtn.getAttribute("data-open")));
+      return;
+    }
+
+    var dlBtn = event.target.closest("[data-download]");
+    if (dlBtn && !dlBtn.disabled) {
+      downloadImage(Number(dlBtn.getAttribute("data-download")));
+      return;
+    }
+  });
 
   document.querySelectorAll("[data-count]").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -782,16 +1633,6 @@
   closeSettingsBtn.addEventListener("click", closeSettings);
   settingsScrim.addEventListener("click", closeSettings);
 
-  grid.addEventListener("click", function (event) {
-    var openBtn = event.target.closest("[data-open]");
-    if (openBtn) {
-      openLightbox(Number(openBtn.getAttribute("data-open")));
-      return;
-    }
-    var dlBtn = event.target.closest("[data-download]");
-    if (dlBtn && !dlBtn.disabled) downloadImage(Number(dlBtn.getAttribute("data-download")));
-  });
-
   downloadAllBtn.addEventListener("click", downloadAll);
 
   lightbox.addEventListener("click", function (event) {
@@ -811,6 +1652,20 @@
       }
       return;
     }
+    if (collectionPanel && !collectionPanel.hidden) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeCollection();
+      }
+      return;
+    }
+    if (sidebarEl && sidebarEl.classList.contains("is-open")) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSidebar();
+      }
+      return;
+    }
     if (lightbox.hidden) return;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -826,5 +1681,26 @@
 
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) checkHealth();
+  });
+
+  /* Initial Session Load from IndexedDB */
+  dbGetAll("sessions").then(function (sessList) {
+    allSessions = (sessList || []).sort(function (a, b) {
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+
+    var storedId = null;
+    try {
+      storedId = localStorage.getItem(ACTIVE_SESSION_KEY);
+    } catch (e) {}
+
+    var matched = storedId ? allSessions.find(function (s) { return s.id === storedId; }) : null;
+    if (matched) {
+      activateSession(matched);
+    } else {
+      showSessionGate();
+    }
+  }).catch(function () {
+    showSessionGate();
   });
 })();

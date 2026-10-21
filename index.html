@@ -35,7 +35,81 @@
 </head>
 <body class="studio-page bg-surface-container-lowest font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
 
-<header class="site-head">
+<div class="session-gate" id="session-gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
+  <div class="session-gate-aura" aria-hidden="true">
+    <span class="studio-aura-lilac"></span>
+    <span class="studio-aura-glaucous"></span>
+  </div>
+  <div class="session-gate-card">
+    <div class="session-gate-brand">
+      <img alt="" class="site-emblem" src="assets/images/metalune-emblem.png"/>
+      <span class="site-wordmark">Metaluna</span>
+    </div>
+    <div class="studio-aperture session-gate-aperture" aria-hidden="true">
+      <span class="studio-aperture-ring r1"></span>
+      <span class="studio-aperture-ring r2"></span>
+      <span class="studio-aperture-core"></span>
+    </div>
+    <p class="studio-eyebrow">Atelier Gateway</p>
+    <h1 class="session-gate-title" id="gate-title">Enter Studio Session</h1>
+    <p class="session-gate-lede">Every frame rendered belongs to a named atelier session. Select an existing session or inaugurate a new one to unlock the studio.</p>
+
+    <form class="session-gate-form" id="gate-create-form" novalidate>
+      <label class="studio-label" for="gate-name-input">New Session Name</label>
+      <div class="session-gate-input-row">
+        <input id="gate-name-input" class="studio-input" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="e.g. Nocturne Atelier"/>
+        <button class="studio-generate session-gate-submit" id="gate-submit-btn" type="submit" disabled>
+          <span>Create</span>
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+      </div>
+      <p class="studio-hint session-gate-error" id="gate-error" hidden></p>
+    </form>
+
+    <div class="session-gate-existing">
+      <div class="session-gate-existing-head">
+        <span class="studio-label">Saved Sessions</span>
+        <span class="session-gate-count" id="gate-count-label">0 recorded</span>
+      </div>
+      <div class="session-gate-list" id="gate-sessions-list" role="list"></div>
+      <p class="session-gate-empty" id="gate-empty-note" hidden>No saved sessions yet. Create your first one above to begin.</p>
+    </div>
+  </div>
+</div>
+
+<div class="studio-layout" id="studio-layout">
+  <div class="studio-sidebar-scrim" id="sidebar-scrim" hidden></div>
+  <aside class="studio-sidebar" id="studio-sidebar" aria-label="Sessions Drawer">
+    <div class="studio-sidebar-head">
+      <div class="studio-sidebar-brand">
+        <p class="studio-eyebrow">Studio Sessions</p>
+        <h2 class="studio-sidebar-title">Ateliers</h2>
+      </div>
+      <button class="studio-sidebar-close" id="close-sidebar" type="button" aria-label="Close sessions drawer">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+
+    <div class="studio-sidebar-new">
+      <button class="studio-sidebar-new-btn" id="sidebar-new-toggle" type="button">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+        <span>New session</span>
+      </button>
+      <form class="studio-sidebar-new-form" id="sidebar-new-form" hidden novalidate>
+        <input id="sidebar-name-input" class="studio-input" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Session name"/>
+        <p class="studio-hint sidebar-name-error" id="sidebar-name-error" hidden></p>
+        <div class="studio-sidebar-form-actions">
+          <button class="studio-sidebar-create" id="sidebar-create-btn" type="submit" disabled>Create</button>
+          <button class="studio-sidebar-cancel" id="sidebar-cancel-btn" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="studio-sidebar-list" id="sidebar-sessions-list" role="list"></div>
+  </aside>
+
+  <div class="studio-viewport">
+    <header class="site-head">
   <div class="site-head-inner">
     <a class="site-brand" href="index.html" aria-label="Metaluna home">
       <img alt="" class="site-emblem" src="assets/images/metalune-emblem.png"/>
@@ -43,6 +117,20 @@
     </a>
 
     <div class="site-head-tools">
+      <button class="site-tool-btn studio-session-trigger" id="open-sidebar" type="button" aria-label="Open sessions list">
+        <span class="material-symbols-outlined" aria-hidden="true">dataset</span>
+        <span class="studio-session-name-pill" id="active-session-pill">Session</span>
+      </button>
+      <button class="site-tool-btn" id="open-memory" type="button" aria-label="Open session memory">
+        <span class="material-symbols-outlined" aria-hidden="true">history_edu</span>
+        <span class="site-tool-btn-text">Memory</span>
+        <span class="site-tool-badge" id="memory-badge">0</span>
+      </button>
+      <button class="site-tool-btn" id="open-starred" type="button" aria-label="Open starred images">
+        <span class="material-symbols-outlined" aria-hidden="true">star</span>
+        <span class="site-tool-btn-text">Starred</span>
+        <span class="site-tool-badge" id="starred-badge">0</span>
+      </button>
       <span class="foundry-pill" id="foundry-pill" data-state="checking" role="status" aria-live="polite">
         <i aria-hidden="true"></i>
         <span id="foundry-label">Checking foundry</span>
@@ -228,6 +316,33 @@
 <footer class="studio-footer">
   <p>Metaluna — an image studio that renders one frame at a time.</p>
 </footer>
+  </div><!-- .studio-viewport -->
+</div><!-- .studio-layout -->
+
+<div class="collection-scrim" id="collection-scrim" hidden></div>
+<aside class="collection-panel" id="collection-panel" role="dialog" aria-modal="true" aria-label="Collections" hidden>
+  <div class="collection-head">
+    <div class="collection-tabs" role="tablist">
+      <button class="collection-tab is-active" id="tab-memory" role="tab" aria-selected="true" type="button">
+        <span class="material-symbols-outlined" aria-hidden="true">history_edu</span>
+        <span>Session Memory</span>
+      </button>
+      <button class="collection-tab" id="tab-starred" role="tab" aria-selected="false" type="button">
+        <span class="material-symbols-outlined" aria-hidden="true">star</span>
+        <span>Starred</span>
+      </button>
+    </div>
+    <button class="settings-close" id="close-collection" type="button" aria-label="Close collection panel">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </div>
+
+  <div class="collection-body">
+    <p class="collection-empty" id="memory-empty" hidden>No images saved to this session's memory yet.</p>
+    <p class="collection-empty" id="starred-empty" hidden>No starred images saved yet.</p>
+    <div class="collection-grid" id="collection-grid" role="list"></div>
+  </div>
+</aside>
 
 <div class="studio-lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
   <button class="studio-lb-close" id="lb-close" type="button" data-lb-control aria-label="Close viewer">
