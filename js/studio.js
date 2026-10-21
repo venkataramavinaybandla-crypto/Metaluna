@@ -98,7 +98,9 @@
   var collectionGrid = $("collection-grid");
 
   var DB_NAME = "metaluna";
-  var DB_VERSION = 1;
+  var DB_VERSION = 2;
+  var patinaToggle = $("patina-toggle");
+  var patinaEnabled = false;
   var ACTIVE_SESSION_KEY = "metaluna.activeSessionId";
   var activeSession = null;
   var allSessions = [];
@@ -184,6 +186,13 @@
           }
           if (!db.objectStoreNames.contains("stars")) {
             db.createObjectStore("stars", { keyPath: "id" });
+          }
+          if (!db.objectStoreNames.contains("attachments")) {
+            var attStore = db.createObjectStore("attachments", { keyPath: "id" });
+            attStore.createIndex("itemKey", "itemKey", { unique: false });
+          }
+          if (!db.objectStoreNames.contains("app_settings")) {
+            db.createObjectStore("app_settings", { keyPath: "key" });
           }
         };
         req.onsuccess = function (e) {
@@ -310,6 +319,233 @@
     return dbGetAll("stars").then(function (res) {
       res.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
       return res;
+    });
+  }
+
+  function dbGetSetting(key) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve) {
+        try {
+          var tx = db.transaction("app_settings", "readonly");
+          var store = tx.objectStore("app_settings");
+          var req = store.get(key);
+          req.onsuccess = function () { resolve(req.result ? req.result.val : null); };
+          req.onerror = function () { resolve(null); };
+        } catch (err) {
+          resolve(null);
+        }
+      });
+    }).catch(function () { return null; });
+  }
+
+  function dbSetSetting(key, val) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction("app_settings", "readwrite");
+          var store = tx.objectStore("app_settings");
+          var req = store.put({ key: key, val: val });
+          req.onsuccess = function () { resolve(); };
+          req.onerror = function () { reject(req.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  function dbGetAttachments(itemKey) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve) {
+        try {
+          var tx = db.transaction("attachments", "readonly");
+          var store = tx.objectStore("attachments");
+          var idx = store.index("itemKey");
+          var req = idx.getAll(itemKey);
+          req.onsuccess = function () { resolve(req.result || []); };
+          req.onerror = function () { resolve([]); };
+        } catch (err) {
+          resolve([]);
+        }
+      });
+    }).catch(function () { return []; });
+  }
+
+  function dbPutAttachment(record) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction("attachments", "readwrite");
+          var store = tx.objectStore("attachments");
+          var req = store.put(record);
+          req.onsuccess = function () { resolve(record); };
+          req.onerror = function () { reject(req.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  function dbDeleteAttachment(id) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        try {
+          var tx = db.transaction("attachments", "readwrite");
+          var store = tx.objectStore("attachments");
+          var req = store.delete(id);
+          req.onsuccess = function () { resolve(true); };
+          req.onerror = function () { reject(req.error); };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  function showAttNotice(el, msg) {
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+    setTimeout(function () {
+      el.textContent = "";
+      el.hidden = true;
+    }, 4000);
+  }
+
+  function downscaleImage(file, noticeEl) {
+    return new Promise(function (resolve) {
+      if (!file.type || !file.type.startsWith("image/")) {
+        showAttNotice(noticeEl, "Image files only");
+        resolve(null);
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        showAttNotice(noticeEl, "File exceeds 8 MB");
+        resolve(null);
+        return;
+      }
+      var reader = new FileReader();
+      reader.onerror = function () {
+        showAttNotice(noticeEl, "Read error");
+        resolve(null);
+      };
+      reader.onload = function (e) {
+        var img = new Image();
+        img.onerror = function () {
+          showAttNotice(noticeEl, "Invalid file");
+          resolve(null);
+        };
+        img.onload = function () {
+          var w = img.naturalWidth || img.width;
+          var h = img.naturalHeight || img.height;
+          var maxEdge = 1280;
+          if (w > maxEdge || h > maxEdge) {
+            if (w >= h) {
+              h = Math.round((h * maxEdge) / w);
+              w = maxEdge;
+            } else {
+              w = Math.round((w * maxEdge) / h);
+              h = maxEdge;
+            }
+          }
+          var canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          try {
+            var dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+            resolve(dataUrl);
+          } catch (err) {
+            showAttNotice(noticeEl, "Encoding error");
+            resolve(null);
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderItemAttachments(barEl, itemKey, noticeEl) {
+    barEl.innerHTML = "";
+    var fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.multiple = true;
+    fileInput.hidden = true;
+
+    var addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "collection-att-add";
+    addBtn.setAttribute("aria-label", "Add attachment");
+    addBtn.title = "Add attachment";
+    addBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">add</span>';
+
+    addBtn.addEventListener("click", function () {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", function () {
+      var files = Array.from(fileInput.files || []);
+      if (!files.length) return;
+      var chain = Promise.resolve();
+      files.forEach(function (file) {
+        chain = chain.then(function () {
+          return downscaleImage(file, noticeEl).then(function (dataUrl) {
+            if (!dataUrl) return;
+            var record = {
+              id: "att_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+              itemKey: itemKey,
+              dataUrl: dataUrl,
+              createdAt: Date.now()
+            };
+            return dbPutAttachment(record).catch(function () {
+              showAttNotice(noticeEl, "Quota exceeded");
+            });
+          });
+        });
+      });
+      chain.then(function () {
+        fileInput.value = "";
+        renderItemAttachments(barEl, itemKey, noticeEl);
+      });
+    });
+
+    barEl.appendChild(fileInput);
+    barEl.appendChild(addBtn);
+
+    dbGetAttachments(itemKey).then(function (atts) {
+      atts.forEach(function (att) {
+        var wrap = document.createElement("div");
+        wrap.className = "collection-thumb-wrap";
+
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "collection-thumb-btn";
+        btn.setAttribute("aria-label", "View attachment");
+        btn.innerHTML = '<img src="' + att.dataUrl + '" alt=""/>';
+        btn.addEventListener("click", function () {
+          openLightboxCustom(att.dataUrl, "Attachment", "");
+        });
+
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "collection-thumb-remove";
+        del.setAttribute("aria-label", "Remove attachment");
+        del.innerHTML = "&times;";
+        del.addEventListener("click", function (e) {
+          e.stopPropagation();
+          dbDeleteAttachment(att.id).then(function () {
+            renderItemAttachments(barEl, itemKey, noticeEl);
+          });
+        });
+
+        wrap.appendChild(btn);
+        wrap.appendChild(del);
+        barEl.insertBefore(wrap, addBtn);
+      });
     });
   }
 
@@ -1319,6 +1555,19 @@
           });
           fig.appendChild(shot);
 
+          if (patinaEnabled) {
+            var itemKey = "memory:" + item.id;
+            var attBar = document.createElement("div");
+            attBar.className = "collection-att-bar";
+            var attNotice = document.createElement("span");
+            attNotice.className = "collection-att-notice";
+            attNotice.setAttribute("role", "status");
+            attNotice.hidden = true;
+            fig.appendChild(attBar);
+            fig.appendChild(attNotice);
+            renderItemAttachments(attBar, itemKey, attNotice);
+          }
+
           var foot = document.createElement("div");
           foot.className = "collection-item-foot";
           foot.innerHTML = '<span class="collection-item-time">' + formatSessionDate(item.createdAt) + '</span>' +
@@ -1369,6 +1618,19 @@
             openLightboxCustom(url, "Starred still", item.prompt);
           });
           fig.appendChild(shot);
+
+          if (patinaEnabled) {
+            var itemKey = "starred:" + item.id;
+            var attBar = document.createElement("div");
+            attBar.className = "collection-att-bar";
+            var attNotice = document.createElement("span");
+            attNotice.className = "collection-att-notice";
+            attNotice.setAttribute("role", "status");
+            attNotice.hidden = true;
+            fig.appendChild(attBar);
+            fig.appendChild(attNotice);
+            renderItemAttachments(attBar, itemKey, attNotice);
+          }
 
           var foot = document.createElement("div");
           foot.className = "collection-item-foot";
@@ -1433,6 +1695,7 @@
   /* --------------------------------------------------------------- events */
 
   loadSettings();
+  initPatina();
   syncCount();
   syncRatio();
   updateDownloads();
@@ -1632,6 +1895,30 @@
   openSettingsBtn.addEventListener("click", openSettings);
   closeSettingsBtn.addEventListener("click", closeSettings);
   settingsScrim.addEventListener("click", closeSettings);
+
+  function updatePatinaUI() {
+    if (patinaToggle) {
+      patinaToggle.setAttribute("aria-checked", patinaEnabled ? "true" : "false");
+    }
+  }
+
+  function initPatina() {
+    dbGetSetting("surfacePatina").then(function (val) {
+      patinaEnabled = !!val;
+      updatePatinaUI();
+    });
+  }
+
+  if (patinaToggle) {
+    patinaToggle.addEventListener("click", function () {
+      patinaEnabled = !patinaEnabled;
+      updatePatinaUI();
+      dbSetSetting("surfacePatina", patinaEnabled).catch(function () {});
+      if (collectionPanel && !collectionPanel.hidden) {
+        renderCollection();
+      }
+    });
+  }
 
   downloadAllBtn.addEventListener("click", downloadAll);
 
