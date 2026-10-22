@@ -1052,7 +1052,7 @@
     overrunEl.hidden = true;
     tickId = setInterval(function () {
       elapsedMs = Date.now() - runStartedAt;
-      swapText(timerValue, formatClock(elapsedMs));
+      timerValue.textContent = formatClock(elapsedMs);
       if (running && Date.now() - imageStartedAt > SECONDS_PER_IMAGE * 1000) {
         overrunEl.hidden = false;
       }
@@ -1078,7 +1078,7 @@
       var on = Number(btn.getAttribute("data-count")) === count;
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    positionCountThumb();
+    $("count-thumb").style.setProperty("--i", String(count - 1));
     updateEstimate();
   }
 
@@ -1087,7 +1087,6 @@
       btn.setAttribute("aria-pressed", btn.getAttribute("data-ratio") === ratio ? "true" : "false");
     });
     if (ratioReadout) ratioReadout.textContent = ratio;
-    positionRatioHighlight();
   }
 
   function setBusy(on) {
@@ -1105,7 +1104,7 @@
       timerEl.hidden = false;
     } else {
       stopTimer();
-      swapText(genLabel, "Generate set");
+      genLabel.textContent = "Generate set";
       genRing.style.setProperty("--p", "0");
     }
   }
@@ -1125,7 +1124,7 @@
   }
 
   function setProgress(index, total) {
-    swapText(genLabel, "Image " + Math.min(index + 1, total) + " of " + total);
+    genLabel.textContent = "Image " + Math.min(index + 1, total) + " of " + total;
     genRing.style.setProperty("--p", String((index / total) * 100));
   }
 
@@ -1551,27 +1550,21 @@
     if (!images[index]) return;
     lbAt = index;
     paintLightbox();
-    motionOpen(lightbox);
+    lightbox.hidden = false;
     document.body.classList.add("is-locked");
     $("lb-close").focus();
   }
 
   function closeLightbox() {
-    motionClose(lightbox, null, function () {
-      lbImage.removeAttribute("src");
-    });
+    lightbox.hidden = true;
     if (settings.hidden) document.body.classList.remove("is-locked");
+    lbImage.removeAttribute("src");
   }
 
   function stepLightbox(delta) {
     if (images.length < 2) return;
     lbAt = (lbAt + delta + images.length) % images.length;
     paintLightbox();
-    if (lbImage) {
-      lbImage.classList.remove("is-swapping");
-      void lbImage.offsetWidth;
-      lbImage.classList.add("is-swapping");
-    }
   }
 
   function openLightboxCustom(src, name, prompt) {
@@ -1581,7 +1574,7 @@
     lbName.textContent = name || "Metaluna still";
     lbPrev.disabled = true;
     lbNext.disabled = true;
-    motionOpen(lightbox);
+    lightbox.hidden = false;
     document.body.classList.add("is-locked");
     $("lb-close").focus();
   }
@@ -1613,7 +1606,7 @@
   function showSessionGate() {
     activeSession = null;
     if (gateEl) {
-      motionOpen(gateEl);
+      gateEl.hidden = false;
       document.body.classList.add("is-locked");
     }
     renderGateSessions();
@@ -1625,7 +1618,7 @@
 
   function hideSessionGate() {
     if (gateEl) {
-      motionClose(gateEl);
+      gateEl.hidden = true;
       if (settings.hidden && lightbox.hidden && (collectionPanel && collectionPanel.hidden) && (!sidebarEl || !sidebarEl.classList.contains("is-open"))) {
         document.body.classList.remove("is-locked");
       }
@@ -1669,11 +1662,10 @@
       gateEmptyNote.hidden = allSessions.length > 0;
     }
 
-    allSessions.forEach(function (sess, listIndex) {
+    allSessions.forEach(function (sess) {
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "session-gate-item";
-      btn.style.animationDelay = Math.min(listIndex, 7) * 40 + "ms";
       btn.innerHTML = '<span class="session-gate-item-name">' + escapeHtml(sess.name) + '</span><span class="session-gate-item-meta">' + formatSessionDate(sess.createdAt) + '</span>';
       btn.addEventListener("click", function () {
         activateSession(sess);
@@ -1684,13 +1676,13 @@
 
   function openSidebar() {
     if (sidebarEl) sidebarEl.classList.add("is-open");
-    motionOpen(sidebarScrim);
+    if (sidebarScrim) sidebarScrim.hidden = false;
     document.body.classList.add("is-locked");
   }
 
   function closeSidebar() {
     if (sidebarEl) sidebarEl.classList.remove("is-open");
-    motionClose(sidebarScrim);
+    if (sidebarScrim) sidebarScrim.hidden = true;
     if (settings.hidden && lightbox.hidden && (collectionPanel && collectionPanel.hidden) && (gateEl && gateEl.hidden)) {
       document.body.classList.remove("is-locked");
     }
@@ -1713,11 +1705,10 @@
       return;
     }
 
-    allSessions.forEach(function (sess, listIndex) {
+    allSessions.forEach(function (sess) {
       var item = document.createElement("div");
       var isActive = activeSession && sess.id === activeSession.id;
       item.className = "studio-sidebar-item" + (isActive ? " is-active" : "");
-      item.style.animationDelay = Math.min(listIndex, 7) * 40 + "ms";
 
       var row = document.createElement("div");
       row.className = "studio-sidebar-row";
@@ -1814,16 +1805,15 @@
       tabStarred.classList.toggle("is-active", activeCollectionTab === "starred");
       tabStarred.setAttribute("aria-selected", activeCollectionTab === "starred" ? "true" : "false");
     }
-    motionOpen(collectionPanel);
-    motionOpen(collectionScrim);
+    if (collectionPanel) collectionPanel.hidden = false;
+    if (collectionScrim) collectionScrim.hidden = false;
     document.body.classList.add("is-locked");
     renderCollection();
-    requestAnimationFrame(positionCollectionTab);
   }
 
   function closeCollection() {
-    motionClose(collectionPanel);
-    motionClose(collectionScrim);
+    if (collectionPanel) collectionPanel.hidden = true;
+    if (collectionScrim) collectionScrim.hidden = true;
     if (settings.hidden && lightbox.hidden && (gateEl && gateEl.hidden) && (!sidebarEl || !sidebarEl.classList.contains("is-open"))) {
       document.body.classList.remove("is-locked");
     }
@@ -1918,28 +1908,26 @@
     });
 
     foot.querySelector(".collection-remove-btn").addEventListener("click", function () {
-      collapseItem(fig, function () {
-        var removal = kind === "memory" ? deleteMemoryRecord(item) : deleteStarRecord(item);
-        removal.then(function () {
-          images.forEach(function (img, idx) {
-            if (kind === "memory" && img.memoryId === item.id) {
-              img.inMemory = false;
-              img.memoryId = null;
-              img.memoryPath = null;
-              updateTileActions(idx);
-            }
-            if (kind === "starred" && img.starId === item.id) {
-              img.isStarred = false;
-              img.starId = null;
-              img.starPath = null;
-              updateTileActions(idx);
-            }
-          });
-          renderCollection();
-          updateBadges();
-        }).catch(function () {
-          renderCollection();
+      var removal = kind === "memory" ? deleteMemoryRecord(item) : deleteStarRecord(item);
+      removal.then(function () {
+        images.forEach(function (img, idx) {
+          if (kind === "memory" && img.memoryId === item.id) {
+            img.inMemory = false;
+            img.memoryId = null;
+            img.memoryPath = null;
+            updateTileActions(idx);
+          }
+          if (kind === "starred" && img.starId === item.id) {
+            img.isStarred = false;
+            img.starId = null;
+            img.starPath = null;
+            updateTileActions(idx);
+          }
         });
+        renderCollection();
+        updateBadges();
+      }).catch(function () {
+        renderCollection();
       });
     });
 
@@ -1963,10 +1951,8 @@
 
     return signedLinks(rows.map(function (row) { return row.path; })).then(function (links) {
       collectionGrid.innerHTML = "";
-      rows.forEach(function (row, listIndex) {
-        var fig = collectionFigure(row, links[row.path], kind);
-        fig.style.animationDelay = Math.min(listIndex, 7) * 40 + "ms";
-        collectionGrid.appendChild(fig);
+      rows.forEach(function (row) {
+        collectionGrid.appendChild(collectionFigure(row, links[row.path], kind));
       });
     });
   }
@@ -2040,8 +2026,8 @@
   /* ------------------------------------------------------------- settings */
 
   function openSettings() {
-    motionOpen(settings);
-    motionOpen(settingsScrim);
+    settings.hidden = false;
+    settingsScrim.hidden = false;
     document.body.classList.add("is-locked");
     openSettingsBtn.setAttribute("aria-expanded", "true");
     backendEl.focus();
@@ -2049,8 +2035,8 @@
   }
 
   function closeSettings() {
-    motionClose(settings);
-    motionClose(settingsScrim);
+    settings.hidden = true;
+    settingsScrim.hidden = true;
     openSettingsBtn.setAttribute("aria-expanded", "false");
     if (lightbox.hidden && (collectionPanel && collectionPanel.hidden) && (gateEl && gateEl.hidden) && (!sidebarEl || !sidebarEl.classList.contains("is-open"))) {
       document.body.classList.remove("is-locked");
@@ -2399,141 +2385,16 @@
 
   function openAccountMenu() {
     if (!accountMenu || !currentUser) return;
-    motionOpen(accountMenu);
-    motionOpen(accountScrim);
+    accountMenu.hidden = false;
+    if (accountScrim) accountScrim.hidden = false;
     if (accountChip) accountChip.setAttribute("aria-expanded", "true");
     if (accountMenuSignout) accountMenuSignout.focus();
   }
 
   function closeAccountMenu() {
-    motionClose(accountMenu);
-    motionClose(accountScrim);
+    if (accountMenu) accountMenu.hidden = true;
+    if (accountScrim) accountScrim.hidden = true;
     if (accountChip) accountChip.setAttribute("aria-expanded", "false");
-  }
-
-  /* ---------------------------------------------------------------- motion */
-
-  var MOTION_DUR = 420;
-
-  function motionOpen(el, cls) {
-    if (!el) return;
-    var name = cls || "is-open";
-    if (!el.hidden && el.classList.contains(name)) return;
-    var id = (el._motionId || 0) + 1;
-    el._motionId = id;
-    if (el._motionTimer) {
-      clearTimeout(el._motionTimer);
-      el._motionTimer = null;
-    }
-    el.hidden = false;
-    el.classList.remove(name);
-    el.style.willChange = "transform, opacity";
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        if (el._motionId !== id) return;
-        el.classList.add(name);
-        setTimeout(function () {
-          if (el._motionId === id) el.style.willChange = "";
-        }, MOTION_DUR);
-      });
-    });
-  }
-
-  function motionClose(el, cls, done) {
-    if (!el) {
-      if (done) done();
-      return;
-    }
-    var name = cls || "is-open";
-    el._motionId = (el._motionId || 0) + 1;
-    if (el.hidden) {
-      if (done) done();
-      return;
-    }
-    el.style.willChange = "transform, opacity";
-    el.classList.remove(name);
-    el.classList.add("is-leaving");
-    if (el._motionTimer) clearTimeout(el._motionTimer);
-    el._motionTimer = setTimeout(function () {
-      el.hidden = true;
-      el.classList.remove("is-leaving");
-      el.style.willChange = "";
-      el._motionTimer = null;
-      if (done) done();
-    }, MOTION_DUR);
-  }
-
-  var indicatorPlaced = { count: false, ratio: false, tabs: false, auth: false };
-
-  function placeIndicator(el, target, kind, underline) {
-    if (!el || !target) return;
-    var w = target.offsetWidth;
-    var h = target.offsetHeight;
-    if (!w || !h) return;
-    var first = !indicatorPlaced[kind];
-    if (first) el.classList.add("is-initial");
-    el.style.width = w + "px";
-    if (underline) {
-      el.style.height = "2px";
-      el.style.transform = "translate(" + target.offsetLeft + "px," + (target.offsetTop + h - 2) + "px)";
-    } else {
-      el.style.height = h + "px";
-      el.style.transform = "translate(" + target.offsetLeft + "px," + target.offsetTop + "px)";
-    }
-    if (first) {
-      indicatorPlaced[kind] = true;
-      void el.offsetWidth;
-      requestAnimationFrame(function () { el.classList.remove("is-initial"); });
-    }
-  }
-
-  function positionCountThumb() {
-    placeIndicator($("count-thumb"), document.querySelector(".studio-count-btn[aria-pressed='true']"), "count", false);
-  }
-
-  function positionRatioHighlight() {
-    placeIndicator($("ratio-highlight"), document.querySelector(".studio-ratio[aria-pressed='true']"), "ratio", false);
-  }
-
-  function positionCollectionTab() {
-    placeIndicator($("collection-tab-highlight"), document.querySelector(".collection-tab.is-active"), "tabs", false);
-  }
-
-  function positionAuthSwitch() {
-    placeIndicator($("auth-switch-highlight"), $("auth-switch"), "auth", true);
-  }
-
-  function repositionIndicators() {
-    positionCountThumb();
-    positionRatioHighlight();
-    positionCollectionTab();
-    positionAuthSwitch();
-  }
-
-  function swapText(el, text) {
-    if (!el) return;
-    var next = String(text == null ? "" : text);
-    if (el.textContent === next) return;
-    if (el._swapTimer) clearTimeout(el._swapTimer);
-    el.style.opacity = "0";
-    el._swapTimer = setTimeout(function () {
-      el.textContent = next;
-      el.style.opacity = "1";
-      el._swapTimer = null;
-    }, 90);
-  }
-
-  function collapseItem(el, done) {
-    if (!el) { done(); return; }
-    el.style.height = el.offsetHeight + "px";
-    void el.offsetWidth;
-    el.classList.add("is-collapsing");
-    setTimeout(done, 240);
-  }
-
-  window.addEventListener("resize", repositionIndicators);
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(repositionIndicators);
   }
 
   function validateAuthForm() {
@@ -2558,7 +2419,6 @@
     if (authPassword) authPassword.setAttribute("autocomplete", signup ? "new-password" : "current-password");
     showAuthError("");
     validateAuthForm();
-    positionAuthSwitch();
   }
 
   function calmAuthError(err) {
@@ -2637,17 +2497,16 @@
 
   function showAuthGate(message) {
     if (!authGate) return;
-    motionOpen(authGate);
+    authGate.hidden = false;
     document.body.classList.add("is-locked");
     setAuthMode(authMode);
-    requestAnimationFrame(positionAuthSwitch);
     if (message) showAuthError(message);
     if (authEmail && !authEmail.value) authEmail.focus();
   }
 
   function onSignedIn(user) {
     currentUser = user || null;
-    if (authGate) motionClose(authGate);
+    if (authGate) authGate.hidden = true;
     if (sidebarUserEmail) sidebarUserEmail.textContent = (currentUser && currentUser.email) || "Signed in";
     paintAccount(currentUser);
     if (authPassword) authPassword.value = "";
@@ -2710,20 +2569,19 @@
     if (memoryBadge) memoryBadge.textContent = "0";
     if (starredBadge) starredBadge.textContent = "0";
     if (sidebarUserEmail) sidebarUserEmail.textContent = "\u00a0";
-    motionClose(gateEl);
+    if (gateEl) gateEl.hidden = true;
     if (sidebarEl) sidebarEl.classList.remove("is-open");
-    motionClose(sidebarScrim);
-    motionClose(collectionPanel);
-    motionClose(collectionScrim);
-    motionClose(settings);
-    motionClose(settingsScrim);
+    if (sidebarScrim) sidebarScrim.hidden = true;
+    if (collectionPanel) collectionPanel.hidden = true;
+    if (collectionScrim) collectionScrim.hidden = true;
+    if (settings) settings.hidden = true;
+    if (settingsScrim) settingsScrim.hidden = true;
     if (migrateField) migrateField.hidden = true;
     if (openSettingsBtn) openSettingsBtn.setAttribute("aria-expanded", "false");
     closeAccountMenu();
     if (accountChip) accountChip.hidden = true;
-    motionClose(lightbox, null, function () {
-      if (lbImage) lbImage.removeAttribute("src");
-    });
+    if (lightbox) lightbox.hidden = true;
+    if (lbImage) lbImage.removeAttribute("src");
     images = [];
     attachmentStore = {};
     if (collectionGrid) collectionGrid.innerHTML = "";
