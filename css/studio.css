@@ -19,6 +19,8 @@
   --error: #ffb4ab;
   --card: 28px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 220ms;
+  --dur: 420ms;
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   color-scheme: dark;
 }
@@ -4278,3 +4280,467 @@
   from { opacity: 0; transform: translateY(22px); }
   to { opacity: 1; transform: none; }
 }
+
+/* ==========================================================================
+   Motion pass — sliding indicators, micro-interactions, panels, gates, viewer
+   ========================================================================== */
+
+/* ---- Sliding indicator (shared) ----------------------------------------- */
+
+.motion-indicator {
+  position: absolute;
+  z-index: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  will-change: transform, width, height;
+  transition: transform var(--dur) var(--ease),
+              width var(--dur) var(--ease),
+              height var(--dur) var(--ease);
+}
+
+/* The lilac gradient + glow used on the active state */
+.motion-indicator--lilac {
+  background: linear-gradient(135deg, rgba(168, 156, 242, 0.25), rgba(123, 111, 208, 0.15));
+  border: 1px solid rgba(214, 206, 255, 0.3);
+  box-shadow: 0 0 18px -4px rgba(168, 156, 242, 0.35),
+              inset 0 1px 1px rgba(246, 247, 255, 0.12);
+}
+
+/* Count indicator re-uses the existing gradient thumb look */
+.motion-indicator--count {
+  background: linear-gradient(135deg, #d6ceff 0%, #a89cf2 55%, #7b6fd0 100%);
+  box-shadow: 0 4px 14px -3px rgba(123, 111, 208, 0.6),
+              inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+/* Ratio indicator shape is a rounded rect matching .studio-ratio */
+.motion-indicator--ratio {
+  border-radius: 18px;
+  border-color: rgba(168, 156, 242, 0.6);
+  background: linear-gradient(160deg, rgba(168, 156, 242, 0.18), rgba(123, 111, 208, 0.06));
+  box-shadow: 0 0 20px rgba(168, 156, 242, 0.18),
+              inset 0 1px 1px rgba(246, 247, 255, 0.14);
+}
+
+/* When the indicator is first placed, skip the transition */
+.motion-indicator.is-initial {
+  transition-duration: 0s !important;
+}
+
+/* ---- Per-option text cross-fade ----------------------------------------- */
+
+.studio-count-btn {
+  transition: color var(--dur) var(--ease);
+}
+
+.collection-tab.is-active {
+  background: transparent;
+  border: 0;
+}
+
+.collection-tab {
+  transition: color var(--dur) var(--ease);
+}
+
+/* ---- Drawers, Panels & Popovers: slide from edge + opacity -------------- */
+
+/* Scrims / Backdrops fade */
+.studio-sidebar-scrim,
+.collection-scrim,
+.settings-scrim,
+.account-scrim {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  will-change: opacity;
+}
+
+.studio-sidebar-scrim.motion-open,
+.collection-scrim.motion-open,
+.settings-scrim.motion-open,
+.account-scrim.motion-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.studio-sidebar-scrim.motion-closing,
+.collection-scrim.motion-closing,
+.settings-scrim.motion-closing,
+.account-scrim.motion-closing {
+  opacity: 0 !important;
+  visibility: visible !important;
+}
+
+/* Mobile Sidebar Drawer (slide in from left edge) */
+@media (max-width: 1023px) {
+  .studio-sidebar {
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+    will-change: transform, opacity;
+  }
+  .studio-sidebar.motion-open,
+  .studio-sidebar.is-open {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+  }
+  .studio-sidebar.motion-closing {
+    opacity: 0 !important;
+    transform: translateX(-100%) !important;
+  }
+}
+
+/* Collection Panel (Memory / Starred: slide from right edge) */
+.collection-panel {
+  opacity: 0;
+  transform: translateX(100%);
+  animation: none !important;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  will-change: transform, opacity;
+}
+
+.collection-panel.motion-open {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  visibility: visible !important;
+}
+
+.collection-panel.motion-closing {
+  opacity: 0 !important;
+  transform: translateX(100%) !important;
+  visibility: visible !important;
+}
+
+/* Settings Drawer (slide from right edge) */
+.settings {
+  opacity: 0;
+  transform: translateX(100%);
+  animation: none !important;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  will-change: transform, opacity;
+}
+
+.settings.motion-open {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  visibility: visible !important;
+}
+
+.settings.motion-closing {
+  opacity: 0 !important;
+  transform: translateX(100%) !important;
+  visibility: visible !important;
+}
+
+/* Account popover & bottom sheets (desktop: slide from top edge; mobile: bottom sheet) */
+.account-menu {
+  opacity: 0;
+  transform: translateY(-16px);
+  animation: none !important;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  will-change: transform, opacity;
+}
+
+.account-menu.motion-open {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  visibility: visible !important;
+}
+
+.account-menu.motion-closing {
+  opacity: 0 !important;
+  transform: translateY(-16px) !important;
+  visibility: visible !important;
+}
+
+@media (max-width: 768px) {
+  .account-menu {
+    transform: translateY(100%) !important;
+  }
+  .account-menu.motion-open {
+    transform: translateY(0) !important;
+  }
+  .account-menu.motion-closing {
+    transform: translateY(100%) !important;
+  }
+}
+
+/* Auth and Session Gates: fade in and rise 12px on entry, fade out on exit */
+.auth-gate,
+.session-gate {
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  will-change: opacity;
+}
+
+.auth-gate.motion-open,
+.session-gate.motion-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.auth-gate.motion-closing,
+.session-gate.motion-closing {
+  opacity: 0 !important;
+  visibility: visible !important;
+}
+
+.auth-card,
+.session-gate-card {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: none !important;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+  will-change: transform, opacity;
+}
+
+.auth-gate.motion-open .auth-card,
+.session-gate.motion-open .session-gate-card {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.auth-gate.motion-closing .auth-card,
+.session-gate.motion-closing .session-gate-card {
+  opacity: 0 !important;
+  transform: translateY(12px) !important;
+}
+
+/* Fullscreen Viewer: image scales 0.96 to 1 and fades in, reverses on close; arrow switching cross-fades */
+.studio-lightbox {
+  opacity: 0;
+  animation: none !important;
+  transition: opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  will-change: opacity;
+}
+
+.studio-lightbox.motion-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.studio-lightbox.motion-closing {
+  opacity: 0 !important;
+  visibility: visible !important;
+}
+
+.studio-lb-figure img {
+  opacity: 0;
+  transform: scale(0.96);
+  animation: none !important;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+  will-change: transform, opacity;
+}
+
+.studio-lightbox.motion-open .studio-lb-figure img {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+
+.studio-lightbox.motion-closing .studio-lb-figure img {
+  opacity: 0 !important;
+  transform: scale(0.96) !important;
+}
+
+.studio-lb-figure img.is-crossfading {
+  animation: lb-crossfade var(--dur-fast) var(--ease) !important;
+}
+
+@keyframes lb-crossfade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* New Generated Images: fade plus 12px rise, blur 8px to 0 on image only */
+.studio-tile {
+  animation: tile-rise-in var(--dur) var(--ease) both !important;
+}
+
+@keyframes tile-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.studio-shot img {
+  animation: img-clarify var(--dur) var(--ease) forwards !important;
+  filter: blur(8px);
+}
+
+@keyframes img-clarify {
+  to {
+    filter: blur(0);
+  }
+}
+
+/* List cards stagger in (40ms apart, max 8) */
+.session-gate-item,
+.studio-sidebar-item,
+.collection-item {
+  animation: card-rise-in var(--dur) var(--ease) both;
+}
+
+@keyframes card-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.session-gate-item:nth-child(1), .studio-sidebar-item:nth-child(1), .collection-item:nth-child(1), .studio-tile:nth-child(1) { animation-delay: 0ms; }
+.session-gate-item:nth-child(2), .studio-sidebar-item:nth-child(2), .collection-item:nth-child(2), .studio-tile:nth-child(2) { animation-delay: 40ms; }
+.session-gate-item:nth-child(3), .studio-sidebar-item:nth-child(3), .collection-item:nth-child(3), .studio-tile:nth-child(3) { animation-delay: 80ms; }
+.session-gate-item:nth-child(4), .studio-sidebar-item:nth-child(4), .collection-item:nth-child(4), .studio-tile:nth-child(4) { animation-delay: 120ms; }
+.session-gate-item:nth-child(5), .studio-sidebar-item:nth-child(5), .collection-item:nth-child(5), .studio-tile:nth-child(5) { animation-delay: 160ms; }
+.session-gate-item:nth-child(6), .studio-sidebar-item:nth-child(6), .collection-item:nth-child(6), .studio-tile:nth-child(6) { animation-delay: 200ms; }
+.session-gate-item:nth-child(7), .studio-sidebar-item:nth-child(7), .collection-item:nth-child(7), .studio-tile:nth-child(7) { animation-delay: 240ms; }
+.session-gate-item:nth-child(8), .studio-sidebar-item:nth-child(8), .collection-item:nth-child(8), .studio-tile:nth-child(8) { animation-delay: 280ms; }
+.session-gate-item:nth-child(n+9), .studio-sidebar-item:nth-child(n+9), .collection-item:nth-child(n+9), .studio-tile:nth-child(n+9) { animation-delay: 280ms; }
+
+/* Removed items collapse (height + opacity) */
+.is-collapsing {
+  overflow: hidden !important;
+  max-height: 0 !important;
+  opacity: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-top-width: 0 !important;
+  border-bottom-width: 0 !important;
+  transition: max-height var(--dur) var(--ease),
+              opacity var(--dur) var(--ease),
+              margin var(--dur) var(--ease),
+              padding var(--dur) var(--ease) !important;
+}
+
+/* Status pill, progress text, and toasts */
+.foundry-pill,
+.sync-pill,
+.studio-session-name-pill,
+.studio-status {
+  transition: transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease) !important;
+}
+
+.studio-gen-label,
+#gen-label,
+#stage-count,
+#timer-value {
+  transition: transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+
+.toast {
+  animation: toast-smooth-in var(--dur-fast) var(--ease) both !important;
+  transition: transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+
+.toast.is-leaving {
+  animation: toast-smooth-out var(--dur-fast) var(--ease) both !important;
+}
+
+@keyframes toast-smooth-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toast-smooth-out {
+  to { opacity: 0; transform: translateY(8px); }
+}
+
+/* ---- Micro-interactions (transform + opacity only) ---------------------- */
+
+button,
+[type="button"],
+[type="submit"],
+.studio-dl,
+.studio-tile-btn,
+.collection-dl-btn,
+.foundry-wake-btn,
+.studio-sidebar-new-btn,
+.studio-sidebar-create,
+.studio-sidebar-cancel,
+.studio-sidebar-del-btn,
+.settings-close,
+.settings-migrate-btn,
+.session-gate-item,
+.account-chip,
+.account-menu-signout,
+.studio-sidebar-signout,
+.site-tool-btn,
+.site-settings {
+  transition: transform var(--dur-fast) var(--ease),
+              opacity var(--dur-fast) var(--ease);
+}
+
+.studio-dl:hover:not(:disabled),
+.studio-tile-btn:hover:not(:disabled),
+.collection-dl-btn:hover,
+.foundry-wake-btn:hover,
+.studio-sidebar-new-btn:hover,
+.studio-sidebar-create:hover:not(:disabled),
+.studio-sidebar-del-btn:hover,
+.settings-close:hover,
+.settings-migrate-btn:hover:not(:disabled),
+.session-gate-item:hover,
+.account-menu-signout:hover,
+.studio-sidebar-signout:hover {
+  transform: translateY(-1px);
+}
+
+.studio-dl:active:not(:disabled),
+.studio-tile-btn:active:not(:disabled),
+.collection-dl-btn:active,
+.foundry-wake-btn:active,
+.studio-sidebar-new-btn:active,
+.studio-sidebar-create:active:not(:disabled),
+.studio-sidebar-del-btn:active,
+.settings-close:active,
+.settings-migrate-btn:active:not(:disabled),
+.session-gate-item:active,
+.account-menu-signout:active,
+.studio-sidebar-signout:active,
+.studio-generate:active:not(:disabled),
+.studio-regenerate:active:not(:disabled),
+.studio-stop:active:not(:disabled),
+.site-tool-btn:active,
+.site-settings:active {
+  transform: scale(0.98);
+}
+
+.studio-tile,
+.collection-item,
+.studio-sidebar-item,
+.session-gate-item {
+  transition: transform var(--dur-fast) var(--ease),
+              opacity var(--dur-fast) var(--ease);
+}
+
+/* ---- Reduced motion ----------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.001ms !important;
+    --dur: 0.001ms !important;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-indicator {
+    transition-duration: 0.001ms !important;
+  }
+}
+
