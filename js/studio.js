@@ -5,6 +5,8 @@
 (function () {
   "use strict";
 
+  const MAX_REFS = 3;
+
   const SECONDS_PER_IMAGE = 80;
 
   var BACKEND_KEY = "metalune.imageFoundry.backend";
@@ -18,6 +20,10 @@
   var $ = function (id) { return document.getElementById(id); };
 
   var promptEl = $("prompt");
+  var refTray = $("ref-tray");
+  var refDropzone = $("ref-dropzone");
+  var refFileInput = $("ref-file-input");
+  var refImportBtn = $("ref-import-btn");
   var nameEl = $("set-name");
   var form = $("studio-form");
   var generateBtn = $("generate");
@@ -154,6 +160,8 @@
   var notebookSaveId = null;
   var healthTimer = null;
   var foundryReady = false;
+  var foundryRefsSupported = false;
+  var selectedRefs = [];
   var lbAt = 0;
 
   /* ---------------------------------------------------------------- utils */
@@ -1015,6 +1023,7 @@
       if (!res.ok) throw new Error("Health check failed");
       return res.json();
     }).then(function (data) {
+      foundryRefsSupported = Boolean(data && data.refs === true);
       if (data && data.ready) {
         setFoundryState("online");
       } else if (data && data.ok && !data.ready) {
@@ -1023,6 +1032,7 @@
         setFoundryState("asleep");
       }
     }).catch(function () {
+      foundryRefsSupported = false;
       setFoundryState("asleep");
     }).then(function () {
       if (cut) clearTimeout(cut);
@@ -1382,6 +1392,388 @@
     });
   }
 
+  /* ---------------------------------------------------------- references */
+
+  function findRefIndex(kind, id) {
+    for (var i = 0; i < selectedRefs.length; i += 1) {
+      if (selectedRefs[i].kind === kind && selectedRefs[i].id === id) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function syncRefNames() {
+    selectedRefs.forEach(function (ref, idx) {
+      ref.name = "ref-" + (idx + 1);
+    });
+  }
+
+  function autoResizeTextarea(el) {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(Math.max(el.scrollHeight, 38), 82) + "px";
+  }
+
+  function saveItemNote(kind, id, note) {
+    if (!sb) return Promise.resolve();
+    var table = kind === "memory" ? "memory" : "stars";
+    return tracked(
+      sb.from(table).update({ note: note || "" }).eq("id", id),
+      "Note could not be saved."
+    ).catch(function () {});
+  }
+
+  function renderRefTray() {
+    if (!refTray) return;
+    if (!selectedRefs.length) {
+      refTray.innerHTML = "";
+      refTray.hidden = true;
+      return;
+    }
+    refTray.hidden = false;
+    refTray.innerHTML = "";
+
+    selectedRefs.forEach(function (ref, index) {
+      var entry = document.createElement("div");
+      entry.className = "ref-entry";
+      entry.setAttribute("data-ref-id", ref.id);
+
+      var thumbWrap = document.createElement("div");
+      thumbWrap.className = "ref-entry-thumb-wrap";
+      var img = document.createElement("img");
+      img.className = "ref-entry-thumb";
+      img.src = ref.url || "";
+      img.alt = ref.name;
+      thumbWrap.appendChild(img);
+
+      var badge = document.createElement("span");
+      badge.className = "ref-entry-badge";
+      badge.textContent = ref.name;
+
+      var tag = null;
+      if (ref.isOneTime) {
+        tag = document.createElement("span");
+        tag.className = "ref-entry-tag";
+        tag.textContent = "one-time";
+      }
+
+      var noteWrap = document.createElement("div");
+      noteWrap.className = "ref-entry-note-wrap";
+      var textarea = document.createElement("textarea");
+      textarea.className = "ref-entry-note";
+      textarea.rows = 1;
+      textarea.maxLength = 300;
+      textarea.placeholder = "What should I take from this image?";
+      textarea.value = ref.note || "";
+      autoResizeTextarea(textarea);
+
+      textarea.addEventListener("input", function () {
+        autoResizeTextarea(textarea);
+        ref.note = textarea.value;
+        if (!ref.isOneTime) {
+          if (ref.item) ref.item.note = textarea.value;
+          if (ref.debounceTimer) clearTimeout(ref.debounceTimer);
+          ref.debounceTimer = setTimeout(function () {
+            saveItemNote(ref.kind, ref.id, ref.note);
+          }, 600);
+        }
+      });
+
+      noteWrap.appendChild(textarea);
+
+      var removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "ref-entry-remove";
+      removeBtn.setAttribute("aria-label", "Remove " + ref.name);
+      removeBtn.title = "Remove " + ref.name;
+      removeBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">close</span>';
+
+      removeBtn.addEventListener("click", function () {
+        removeReference(index);
+      });
+
+      entry.appendChild(thumbWrap);
+      entry.appendChild(badge);
+      if (tag) entry.appendChild(tag);
+      entry.appendChild(noteWrap);
+      entry.appendChild(removeBtn);
+
+      refTray.appendChild(entry);
+    });
+  }
+
+  function removeReference(index) {
+    if (index < 0 || index >= selectedRefs.length) return;
+    var removed = selectedRefs[index];
+    if (removed.debounceTimer) {
+      clearTimeout(removed.debounceTimer);
+      if (!removed.isOneTime) {
+        saveItemNote(removed.kind, removed.id, removed.note);
+      }
+    }
+    selectedRefs.splice(index, 1);
+    syncRefNames();
+    renderRefTray();
+    updateCollectionItemStates();
+  }
+
+  function toggleReference(kind, item, url) {
+    var idx = findRefIndex(kind, item.id);
+    if (idx >= 0) {
+      removeReference(idx);
+      return;
+    }
+    if (selectedRefs.length >= MAX_REFS) {
+      toast("Max 3 references", "error");
+      return;
+    }
+    selectedRefs.push({
+      id: item.id,
+      kind: kind,
+      path: item.path,
+      url: url || "",
+      item: item,
+      note: item.note || "",
+      name: "",
+      debounceTimer: null
+    });
+    syncRefNames();
+    renderRefTray();
+    updateCollectionItemStates();
+  }
+
+  function updateCollectionItemStates() {
+    if (!collectionGrid) return;
+    var items = collectionGrid.querySelectorAll(".collection-item");
+    items.forEach(function (fig) {
+      var kind = fig.getAttribute("data-kind");
+      var id = fig.getAttribute("data-id");
+      if (!kind || !id) return;
+      var idx = findRefIndex(kind, id);
+      var selBtn = fig.querySelector(".collection-ref-select");
+      var badge = fig.querySelector(".collection-ref-badge");
+      if (idx >= 0) {
+        if (selBtn) {
+          selBtn.classList.add("is-selected");
+          selBtn.setAttribute("aria-pressed", "true");
+          selBtn.setAttribute("aria-label", "Deselect reference " + selectedRefs[idx].name);
+        }
+        if (badge) {
+          badge.textContent = selectedRefs[idx].name;
+          badge.hidden = false;
+        }
+      } else {
+        if (selBtn) {
+          selBtn.classList.remove("is-selected");
+          selBtn.setAttribute("aria-pressed", "false");
+          selBtn.setAttribute("aria-label", "Select as reference");
+        }
+        if (badge) {
+          badge.hidden = true;
+        }
+      }
+    });
+  }
+
+  function clearReferenceSelection() {
+    selectedRefs.forEach(function (ref) {
+      if (ref.debounceTimer) {
+        clearTimeout(ref.debounceTimer);
+        if (!ref.isOneTime) {
+          saveItemNote(ref.kind, ref.id, ref.note);
+        }
+      }
+    });
+    selectedRefs = [];
+    renderRefTray();
+    updateCollectionItemStates();
+  }
+
+  function removeOneTimeReferences() {
+    var had = false;
+    selectedRefs = selectedRefs.filter(function (ref) {
+      if (ref.isOneTime) {
+        had = true;
+        if (ref.debounceTimer) clearTimeout(ref.debounceTimer);
+        return false;
+      }
+      return true;
+    });
+    if (had) {
+      syncRefNames();
+      renderRefTray();
+      updateCollectionItemStates();
+    }
+  }
+
+  function compressFileToJpeg(file) {
+    return new Promise(function (resolve, reject) {
+      var objectUrl = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var longestSide = 1024;
+          var w = img.naturalWidth || img.width;
+          var h = img.naturalHeight || img.height;
+          if (!w || !h) {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("Invalid image"));
+            return;
+          }
+          if (w > longestSide || h > longestSide) {
+            if (w >= h) {
+              h = Math.round((h * longestSide) / w);
+              w = longestSide;
+            } else {
+              w = Math.round((w * longestSide) / h);
+              h = longestSide;
+            }
+          }
+          var canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          var dataUri = canvas.toDataURL("image/jpeg", 0.9);
+          URL.revokeObjectURL(objectUrl);
+          resolve(dataUri);
+        } catch (err) {
+          URL.revokeObjectURL(objectUrl);
+          reject(err);
+        }
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Could not load image"));
+      };
+      img.src = objectUrl;
+    });
+  }
+
+  function processOneTimeReferenceFile(file) {
+    if (!file) return;
+
+    if (!file.type || file.type.indexOf("image/") !== 0) {
+      toast("Image files only", "error");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast("Image exceeds 10 MB", "error");
+      return;
+    }
+
+    if (selectedRefs.length >= MAX_REFS) {
+      toast("Max 3 references", "error");
+      return;
+    }
+
+    compressFileToJpeg(file).then(function (dataUri) {
+      if (selectedRefs.length >= MAX_REFS) {
+        toast("Max 3 references", "error");
+        return;
+      }
+
+      var oneTimeId = "ref_onetime_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+      selectedRefs.push({
+        id: oneTimeId,
+        kind: "onetime",
+        isOneTime: true,
+        path: null,
+        url: dataUri,
+        dataUri: dataUri,
+        item: null,
+        note: "",
+        name: "",
+        debounceTimer: null
+      });
+
+      syncRefNames();
+      renderRefTray();
+      updateCollectionItemStates();
+    }).catch(function () {
+      toast("Could not process reference image.", "error");
+    });
+  }
+
+  function prepareRefImage(ref) {
+    if (ref.isOneTime && ref.dataUri) {
+      return Promise.resolve(ref.dataUri);
+    }
+
+    function tryFetch(url) {
+      return fetch(url).then(function (res) {
+        if (!res.ok) throw new Error("Fetch failed: " + res.status);
+        return res.blob();
+      });
+    }
+
+    var fetchPromise;
+    if (ref.url) {
+      fetchPromise = tryFetch(ref.url).catch(function () {
+        if (!ref.path) throw new Error("No path for reference image");
+        return signedLinks([ref.path]).then(function (links) {
+          ref.url = links[ref.path];
+          if (!ref.url) throw new Error("Could not refresh signed URL");
+          return tryFetch(ref.url);
+        });
+      });
+    } else if (ref.path) {
+      fetchPromise = signedLinks([ref.path]).then(function (links) {
+        ref.url = links[ref.path];
+        if (!ref.url) throw new Error("Could not get signed URL");
+        return tryFetch(ref.url);
+      });
+    } else {
+      return Promise.reject(new Error("No reference image source available"));
+    }
+
+    return fetchPromise.then(function (blob) {
+      return new Promise(function (resolve, reject) {
+        var objectUrl = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var longestSide = 1024;
+            var w = img.naturalWidth || img.width;
+            var h = img.naturalHeight || img.height;
+            if (!w || !h) {
+              URL.revokeObjectURL(objectUrl);
+              reject(new Error("Invalid reference image dimensions"));
+              return;
+            }
+            if (w > longestSide || h > longestSide) {
+              if (w >= h) {
+                h = Math.round((h * longestSide) / w);
+                w = longestSide;
+              } else {
+                w = Math.round((w * longestSide) / h);
+                h = longestSide;
+              }
+            }
+            var canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            var dataUri = canvas.toDataURL("image/jpeg", 0.9);
+            URL.revokeObjectURL(objectUrl);
+            resolve(dataUri);
+          } catch (e) {
+            URL.revokeObjectURL(objectUrl);
+            reject(e);
+          }
+        };
+        img.onerror = function () {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Reference image failed to load"));
+        };
+        img.src = objectUrl;
+      });
+    });
+  }
+
   /* ------------------------------------------------------------ generate */
 
   function requestImage(base, request, signal) {
@@ -1391,7 +1783,12 @@
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "1"
       },
-      body: JSON.stringify({ prompt: request.prompt, count: 1, ratio: request.ratio }),
+      body: JSON.stringify({
+        prompt: request.prompt,
+        count: 1,
+        ratio: request.ratio,
+        refs: request.refs || []
+      }),
       signal: signal
     }).catch(function (err) {
       if (err && (err.name === "AbortError" || (signal && signal.aborted))) {
@@ -1432,6 +1829,11 @@
   function run(request) {
     if (running) return;
 
+    if (selectedRefs.length > 0 && !foundryRefsSupported) {
+      toast("The foundry needs the reference update first.", "error");
+      return;
+    }
+
     var base = backendBase();
     if (!/^https?:\/\/.+/i.test(base)) {
       setStatus("Add the backend URL in settings first.", "error");
@@ -1456,7 +1858,8 @@
     var req = {
       prompt: prompt,
       count: Math.min(4, Math.max(1, Number(source.count) || 1)),
-      ratio: RATIOS.indexOf(source.ratio) > -1 ? source.ratio : ratio
+      ratio: RATIOS.indexOf(source.ratio) > -1 ? source.ratio : ratio,
+      refs: []
     };
 
     var runId = ++currentRunId;
@@ -1471,59 +1874,88 @@
 
     regenerateBtn.hidden = false;
     setBusy(true);
-    startTimer(req.count);
 
-    var failure = null;
-
-    var chain = Promise.resolve();
-    for (var i = 0; i < req.count; i += 1) {
-      (function (index) {
-        chain = chain.then(function () {
-          if (runId !== currentRunId || stopped || failure) return null;
-          beginImage();
-          setProgress(index, req.count);
-          return requestImage(base, req, abortController ? abortController.signal : null).then(function (img) {
-            if (runId !== currentRunId || stopped || (abortController && abortController.signal.aborted)) return;
-            images.push(img);
-            render();
-            genRing.style.setProperty("--p", String(((index + 1) / req.count) * 100));
-          }).catch(function (err) {
-            if (runId !== currentRunId) return;
-            if (err && (err.name === "AbortError" || (abortController && abortController.signal.aborted))) {
-              stopped = true;
-              return;
-            }
-            failure = err;
+    var preparePromise = selectedRefs.length > 0
+      ? Promise.all(selectedRefs.map(function (ref) {
+          return prepareRefImage(ref).then(function (dataUri) {
+            return {
+              name: ref.name,
+              image: dataUri,
+              note: ref.note || ""
+            };
           });
-        });
-      })(i);
-    }
+        }))
+      : Promise.resolve([]);
 
-    chain.then(function () {
-      if (runId !== currentRunId) return;
-      if (stopped) {
-        setBusy(false);
-        stopTimer();
-        timerEl.hidden = true;
-        timerValue.textContent = "00:00";
-        setStatus("Stopped. Kept " + images.length + " of " + requested + ".");
-        updateDownloads();
-        return;
+    preparePromise.then(function (preparedRefs) {
+      if (runId !== currentRunId || stopped) return;
+      req.refs = preparedRefs;
+      startTimer(req.count);
+
+      var failure = null;
+
+      var chain = Promise.resolve();
+      for (var i = 0; i < req.count; i += 1) {
+        (function (index) {
+          chain = chain.then(function () {
+            if (runId !== currentRunId || stopped || failure) return null;
+            beginImage();
+            setProgress(index, req.count);
+            return requestImage(base, req, abortController ? abortController.signal : null).then(function (img) {
+              if (runId !== currentRunId || stopped || (abortController && abortController.signal.aborted)) return;
+              images.push(img);
+              render();
+              genRing.style.setProperty("--p", String(((index + 1) / req.count) * 100));
+            }).catch(function (err) {
+              if (runId !== currentRunId) return;
+              if (err && (err.name === "AbortError" || (abortController && abortController.signal.aborted))) {
+                stopped = true;
+                return;
+              }
+              failure = err;
+            });
+          });
+        })(i);
       }
-      setBusy(false);
-      if (failure) {
-        if (failure.name === "AbortError" || (failure.message && failure.message.indexOf("abort") !== -1)) {
+
+      chain.then(function () {
+        if (runId !== currentRunId) return;
+        if (images.length > 0) {
+          removeOneTimeReferences();
+        }
+        if (stopped) {
+          setBusy(false);
+          stopTimer();
+          timerEl.hidden = true;
+          timerValue.textContent = "00:00";
           setStatus("Stopped. Kept " + images.length + " of " + requested + ".");
+          updateDownloads();
           return;
         }
-        var message = failure.isWarming
-          ? "Foundry is warming up, try again in a minute."
-          : (failure.offline ? OFFLINE : (failure.message || OFFLINE));
-        setStatus(message, "error");
-        if (failure.offline || failure.isWarming) checkHealth();
-      } else {
-        setStatus(images.length + (images.length === 1 ? " image" : " images") + " ready.", "ok");
+        setBusy(false);
+        if (failure) {
+          if (failure.name === "AbortError" || (failure.message && failure.message.indexOf("abort") !== -1)) {
+            setStatus("Stopped. Kept " + images.length + " of " + requested + ".");
+            return;
+          }
+          var message = failure.isWarming
+            ? "Foundry is warming up, try again in a minute."
+            : (failure.offline ? OFFLINE : (failure.message || OFFLINE));
+          setStatus(message, "error");
+          if (failure.offline || failure.isWarming) checkHealth();
+        } else {
+          setStatus(images.length + (images.length === 1 ? " image" : " images") + " ready.", "ok");
+        }
+      });
+    }).catch(function (err) {
+      if (runId !== currentRunId) return;
+      if (images.length > 0) {
+        removeOneTimeReferences();
       }
+      setBusy(false);
+      var message = friendlyError(err, "Could not prepare reference images.");
+      setStatus(message, "error");
+      toast(message, "error");
     });
   }
 
@@ -1581,6 +2013,9 @@
 
   function activateSession(session, preserveSidebar) {
     if (!session) return;
+    if (activeSession && activeSession.id !== session.id) {
+      clearReferenceSelection();
+    }
     activeSession = session;
     try {
       localStorage.setItem(ACTIVE_SESSION_KEY, session.id);
@@ -1766,6 +2201,7 @@
       allSessions = allSessions.filter(function (s) { return s.id !== id; });
       deleteConfirmId = null;
       if (activeSession && activeSession.id === id) {
+        clearReferenceSelection();
         if (allSessions.length > 0) {
           activateSession(allSessions[0]);
         } else {
@@ -1861,6 +2297,36 @@
   function collectionFigure(item, url, kind) {
     var fig = document.createElement("figure");
     fig.className = "collection-item";
+    fig.setAttribute("data-kind", kind);
+    fig.setAttribute("data-id", item.id);
+
+    var refIdx = findRefIndex(kind, item.id);
+    if (refIdx >= 0) {
+      selectedRefs[refIdx].url = url || selectedRefs[refIdx].url;
+      selectedRefs[refIdx].item = item;
+    }
+
+    var selBtn = document.createElement("button");
+    selBtn.type = "button";
+    selBtn.className = "collection-ref-select" + (refIdx >= 0 ? " is-selected" : "");
+    selBtn.setAttribute("aria-pressed", refIdx >= 0 ? "true" : "false");
+    selBtn.setAttribute("aria-label", refIdx >= 0 ? "Deselect reference " + selectedRefs[refIdx].name : "Select as reference");
+    selBtn.innerHTML = '<span class="collection-ref-circle"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>';
+    selBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleReference(kind, item, url);
+    });
+    fig.appendChild(selBtn);
+
+    var badge = document.createElement("span");
+    badge.className = "collection-ref-badge";
+    if (refIdx >= 0) {
+      badge.textContent = selectedRefs[refIdx].name;
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+    fig.appendChild(badge);
 
     var shot = document.createElement("button");
     shot.type = "button";
@@ -1908,6 +2374,10 @@
     });
 
     foot.querySelector(".collection-remove-btn").addEventListener("click", function () {
+      var rIdx = findRefIndex(kind, item.id);
+      if (rIdx >= 0) {
+        removeReference(rIdx);
+      }
       var removal = kind === "memory" ? deleteMemoryRecord(item) : deleteStarRecord(item);
       removal.then(function () {
         images.forEach(function (img, idx) {
@@ -2274,23 +2744,110 @@
     });
   }
 
-  document.addEventListener("paste", function (e) {
-    if (!patinaEnabled) return;
-    var cd = e.clipboardData || (window.clipboardData);
-    if (!cd || !cd.items) return;
-    var imageFiles = [];
-    for (var i = 0; i < cd.items.length; i++) {
-      if (cd.items[i].type && cd.items[i].type.indexOf("image") !== -1) {
-        var f = cd.items[i].getAsFile();
-        if (f) imageFiles.push(f);
+  function handleDropzoneDragOver(e) {
+    if (e.dataTransfer && e.dataTransfer.types) {
+      var types = Array.from(e.dataTransfer.types);
+      if (types.indexOf("Files") !== -1) {
+        e.preventDefault();
+        if (refDropzone) refDropzone.classList.add("is-dragover");
       }
     }
-    if (imageFiles.length > 0) {
+  }
+
+  function handleDropzoneDragLeave(e) {
+    if (refDropzone && (!e.relatedTarget || !refDropzone.contains(e.relatedTarget))) {
+      refDropzone.classList.remove("is-dragover");
+    }
+  }
+
+  function handleDropzoneDrop(e) {
+    if (refDropzone) refDropzone.classList.remove("is-dragover");
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    var files = Array.from(e.dataTransfer.files);
+    var imageFile = files.find(function (f) { return f.type && f.type.indexOf("image/") === 0; });
+    if (imageFile) {
       e.preventDefault();
-      if (collectionPanel && collectionPanel.hidden) {
-        openCollection(activeCollectionTab || "memory");
+      processOneTimeReferenceFile(imageFile);
+    } else if (files.length > 0) {
+      e.preventDefault();
+      toast("Image files only", "error");
+    }
+  }
+
+  if (refDropzone) {
+    refDropzone.addEventListener("dragenter", handleDropzoneDragOver);
+    refDropzone.addEventListener("dragover", handleDropzoneDragOver);
+    refDropzone.addEventListener("dragleave", handleDropzoneDragLeave);
+    refDropzone.addEventListener("drop", handleDropzoneDrop);
+
+    refDropzone.addEventListener("click", function (e) {
+      if (refFileInput && e.target !== refImportBtn) {
+        refFileInput.click();
       }
-      handleUploadFiles(imageFiles, null, null);
+    });
+
+    refDropzone.addEventListener("keydown", function (e) {
+      if ((e.key === "Enter" || e.key === " ") && refFileInput) {
+        e.preventDefault();
+        refFileInput.click();
+      }
+    });
+  }
+
+  if (refImportBtn && refFileInput) {
+    refImportBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      refFileInput.click();
+    });
+  }
+
+  if (refFileInput) {
+    refFileInput.addEventListener("change", function () {
+      var files = Array.from(refFileInput.files || []);
+      refFileInput.value = "";
+      if (files.length > 0) {
+        processOneTimeReferenceFile(files[0]);
+      }
+    });
+  }
+
+  if (promptEl) {
+    promptEl.addEventListener("dragenter", handleDropzoneDragOver);
+    promptEl.addEventListener("dragover", handleDropzoneDragOver);
+    promptEl.addEventListener("dragleave", handleDropzoneDragLeave);
+    promptEl.addEventListener("drop", handleDropzoneDrop);
+  }
+
+  document.addEventListener("paste", function (e) {
+    if (collectionPanel && !collectionPanel.hidden && patinaEnabled) {
+      var cd = e.clipboardData || (window.clipboardData);
+      if (!cd || !cd.items) return;
+      var imageFiles = [];
+      for (var i = 0; i < cd.items.length; i++) {
+        if (cd.items[i].type && cd.items[i].type.indexOf("image") !== -1) {
+          var f = cd.items[i].getAsFile();
+          if (f) imageFiles.push(f);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        handleUploadFiles(imageFiles, null, null);
+      }
+      return;
+    }
+
+    var cd = e.clipboardData || (window.clipboardData);
+    if (!cd || !cd.items) return;
+    var imageFile = null;
+    for (var i = 0; i < cd.items.length; i++) {
+      if (cd.items[i].type && cd.items[i].type.indexOf("image") !== -1) {
+        imageFile = cd.items[i].getAsFile();
+        if (imageFile) break;
+      }
+    }
+    if (imageFile) {
+      e.preventDefault();
+      processOneTimeReferenceFile(imageFile);
     }
   });
 
@@ -2584,6 +3141,7 @@
     if (lbImage) lbImage.removeAttribute("src");
     images = [];
     attachmentStore = {};
+    clearReferenceSelection();
     if (collectionGrid) collectionGrid.innerHTML = "";
     try { localStorage.removeItem(ACTIVE_SESSION_KEY); } catch (e) {}
     requested = 0;

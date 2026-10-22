@@ -259,7 +259,18 @@
           <label class="studio-label" for="prompt">Prompt</label>
           <span class="studio-step-meta">describe the image</span>
         </div>
-        <textarea id="prompt" class="studio-prompt" rows="4" spellcheck="false" placeholder="A slab of dark violet glass poured over brushed pewter, one blade of lilac light grazing the edge, still life, macro lens"></textarea>
+        <div class="ref-tray" id="ref-tray" role="region" aria-label="Reference images" hidden></div>
+        <div class="studio-prompt-row">
+          <textarea id="prompt" class="studio-prompt" rows="4" spellcheck="false" placeholder="A slab of dark violet glass poured over brushed pewter, one blade of lilac light grazing the edge, still life, macro lens"></textarea>
+          <div class="ref-dropzone" id="ref-dropzone" role="button" tabindex="0" aria-label="Add a reference">
+            <input type="file" id="ref-file-input" accept="image/*" hidden/>
+            <span class="material-symbols-outlined ref-drop-icon" aria-hidden="true">add_photo_alternate</span>
+            <div class="ref-drop-info">
+              <span class="ref-drop-title">Add a reference</span>
+              <p class="ref-drop-text">Drop, paste (Ctrl+V) or <button type="button" class="ref-import-btn" id="ref-import-btn">import</button></p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="studio-step">
