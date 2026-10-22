@@ -76,6 +76,12 @@
   var toastStack = $("toast-stack");
   var signoutBtn = $("signout-btn");
   var sidebarUserEmail = $("sidebar-user-email");
+  var accountChip = $("account-chip");
+  var accountChipAvatar = $("account-chip-avatar");
+  var accountMenu = $("account-menu");
+  var accountScrim = $("account-scrim");
+  var accountMenuEmail = $("account-menu-email");
+  var accountMenuSignout = $("account-menu-signout");
   var migrateField = $("migrate-field");
   var migrateNote = $("migrate-note");
   var migrateBtn = $("migrate-btn");
@@ -2300,6 +2306,14 @@
   lbNext.addEventListener("click", function () { stepLightbox(1); });
 
   document.addEventListener("keydown", function (event) {
+    if (accountMenu && !accountMenu.hidden) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeAccountMenu();
+        if (accountChip) accountChip.focus();
+      }
+      return;
+    }
     if (!settings.hidden) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -2350,6 +2364,37 @@
     if (!authError) return;
     authError.textContent = message || "";
     authError.hidden = !message;
+  }
+
+  /* ------------------------------------------------------------ account chip */
+
+  function accountInitial(user) {
+    var email = String((user && user.email) || "").trim();
+    return (email.charAt(0) || "M").toUpperCase();
+  }
+
+  function paintAccount(user) {
+    var email = String((user && user.email) || "");
+    if (accountChipAvatar) accountChipAvatar.textContent = accountInitial(user);
+    if (accountMenuEmail) {
+      accountMenuEmail.textContent = email || "Signed in";
+      accountMenuEmail.title = email;
+    }
+    if (accountChip) accountChip.hidden = !user;
+  }
+
+  function openAccountMenu() {
+    if (!accountMenu || !currentUser) return;
+    accountMenu.hidden = false;
+    if (accountScrim) accountScrim.hidden = false;
+    if (accountChip) accountChip.setAttribute("aria-expanded", "true");
+    if (accountMenuSignout) accountMenuSignout.focus();
+  }
+
+  function closeAccountMenu() {
+    if (accountMenu) accountMenu.hidden = true;
+    if (accountScrim) accountScrim.hidden = true;
+    if (accountChip) accountChip.setAttribute("aria-expanded", "false");
   }
 
   function validateAuthForm() {
@@ -2463,6 +2508,7 @@
     currentUser = user || null;
     if (authGate) authGate.hidden = true;
     if (sidebarUserEmail) sidebarUserEmail.textContent = (currentUser && currentUser.email) || "Signed in";
+    paintAccount(currentUser);
     if (authPassword) authPassword.value = "";
     showAuthError("");
     validateAuthForm();
@@ -2531,6 +2577,14 @@
     if (settings) settings.hidden = true;
     if (settingsScrim) settingsScrim.hidden = true;
     if (migrateField) migrateField.hidden = true;
+    if (openSettingsBtn) openSettingsBtn.setAttribute("aria-expanded", "false");
+    closeAccountMenu();
+    if (accountChip) accountChip.hidden = true;
+    if (lightbox) lightbox.hidden = true;
+    if (lbImage) lbImage.removeAttribute("src");
+    images = [];
+    attachmentStore = {};
+    if (collectionGrid) collectionGrid.innerHTML = "";
     try { localStorage.removeItem(ACTIVE_SESSION_KEY); } catch (e) {}
     requested = 0;
     lastRequest = null;
@@ -2573,8 +2627,7 @@
       /* Keep data calls out of the auth callback so the client lock is free. */
       setTimeout(function () {
         if (event === "SIGNED_OUT") {
-          if (currentUser) resetSignedOutState();
-          else showAuthGate();
+          resetSignedOutState();
           return;
         }
         if (event === "SIGNED_IN" && session && session.user) {
@@ -2757,6 +2810,23 @@
   }
 
   if (signoutBtn) signoutBtn.addEventListener("click", signOut);
+
+  if (accountChip) {
+    accountChip.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (accountMenu && !accountMenu.hidden) closeAccountMenu();
+      else openAccountMenu();
+    });
+  }
+
+  if (accountScrim) accountScrim.addEventListener("click", closeAccountMenu);
+
+  if (accountMenuSignout) {
+    accountMenuSignout.addEventListener("click", function () {
+      closeAccountMenu();
+      signOut();
+    });
+  }
 
   if (migrateBtn) migrateBtn.addEventListener("click", runMigration);
 

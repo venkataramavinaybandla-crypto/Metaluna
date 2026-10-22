@@ -198,6 +198,9 @@
       <button class="site-settings" id="open-settings" type="button" aria-label="Studio settings" aria-haspopup="dialog" aria-controls="settings" aria-expanded="false">
         <span class="material-symbols-outlined" aria-hidden="true">settings</span>
       </button>
+      <button class="account-chip" id="account-chip" type="button" aria-label="Account" aria-haspopup="dialog" aria-controls="account-menu" aria-expanded="false" hidden>
+        <span class="account-chip-avatar" id="account-chip-avatar" aria-hidden="true">M</span>
+      </button>
     </div>
   </div>
 
@@ -483,6 +486,16 @@
 
   <p class="settings-foot">Backend values stay in this browser. Sessions, memory and stars travel with your account.</p>
 </aside>
+
+<div class="account-scrim" id="account-scrim" hidden></div>
+<div class="account-menu" id="account-menu" role="dialog" aria-modal="true" aria-label="Account" hidden>
+  <p class="studio-eyebrow account-menu-eyebrow">Signed in as</p>
+  <p class="account-menu-email" id="account-menu-email">&nbsp;</p>
+  <button class="account-menu-signout" id="account-menu-signout" type="button">
+    <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+    <span>Sign out</span>
+  </button>
+</div>
 
 <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
 
