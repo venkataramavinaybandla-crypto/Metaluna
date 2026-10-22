@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  const MAX_REFS = 3;
+  const MAX_REFS = 4;
 
   const SECONDS_PER_IMAGE = 80;
 
@@ -1525,7 +1525,7 @@
       return;
     }
     if (selectedRefs.length >= MAX_REFS) {
-      toast("Max 3 references", "error");
+      toast("Max 4 references", "error");
       return;
     }
     selectedRefs.push({
@@ -1665,13 +1665,13 @@
     }
 
     if (selectedRefs.length >= MAX_REFS) {
-      toast("Max 3 references", "error");
+      toast("Max 4 references", "error");
       return;
     }
 
     compressFileToJpeg(file).then(function (dataUri) {
       if (selectedRefs.length >= MAX_REFS) {
-        toast("Max 3 references", "error");
+        toast("Max 4 references", "error");
         return;
       }
 
