@@ -61,6 +61,31 @@
   var notebookEl = $("notebook-url");
   var notebookNote = $("notebook-state");
 
+  /* Account, sync state & local migration */
+  var authGate = $("auth-gate");
+  var authForm = $("auth-form");
+  var authEmail = $("auth-email");
+  var authPassword = $("auth-password");
+  var authError = $("auth-error");
+  var authSubmit = $("auth-submit");
+  var authSubmitLabel = $("auth-submit-label");
+  var authSwitch = $("auth-switch");
+  var authSwitchPrompt = $("auth-switch-prompt");
+  var authTitle = $("auth-title");
+  var syncPill = $("sync-pill");
+  var toastStack = $("toast-stack");
+  var signoutBtn = $("signout-btn");
+  var sidebarUserEmail = $("sidebar-user-email");
+  var migrateField = $("migrate-field");
+  var migrateNote = $("migrate-note");
+  var migrateBtn = $("migrate-btn");
+  var migrateProgress = $("migrate-progress");
+  var migrateBar = $("migrate-bar");
+  var migrateConfirm = $("migrate-confirm");
+  var migrateConfirmNote = $("migrate-confirm-note");
+  var migrateClear = $("migrate-clear");
+  var migrateKeep = $("migrate-keep");
+
   /* Sessions, Memory & Starred Elements */
   var gateEl = $("session-gate");
   var gateForm = $("gate-create-form");
@@ -97,8 +122,6 @@
   var starredEmpty = $("starred-empty");
   var collectionGrid = $("collection-grid");
 
-  var DB_NAME = "metaluna";
-  var DB_VERSION = 2;
   var patinaToggle = $("patina-toggle");
   var patinaEnabled = false;
   var ACTIVE_SESSION_KEY = "metaluna.activeSessionId";
@@ -167,239 +190,449 @@
     }
   }
 
-  /* ----------------------------------------------------------- IndexedDB */
+  /* ------------------------------------------------------------- supabase */
 
-  var dbPromise = null;
-  function openDB() {
-    if (dbPromise) return dbPromise;
-    dbPromise = new Promise(function (resolve, reject) {
-      try {
-        var req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = function (e) {
-          var db = e.target.result;
-          if (!db.objectStoreNames.contains("sessions")) {
-            db.createObjectStore("sessions", { keyPath: "id" });
-          }
-          if (!db.objectStoreNames.contains("memory")) {
-            var memStore = db.createObjectStore("memory", { keyPath: "id" });
-            memStore.createIndex("sessionId", "sessionId", { unique: false });
-          }
-          if (!db.objectStoreNames.contains("stars")) {
-            db.createObjectStore("stars", { keyPath: "id" });
-          }
-          if (!db.objectStoreNames.contains("attachments")) {
-            var attStore = db.createObjectStore("attachments", { keyPath: "id" });
-            attStore.createIndex("itemKey", "itemKey", { unique: false });
-          }
-          if (!db.objectStoreNames.contains("app_settings")) {
-            db.createObjectStore("app_settings", { keyPath: "key" });
-          }
-        };
-        req.onsuccess = function (e) {
-          resolve(e.target.result);
-        };
-        req.onerror = function (e) {
-          reject(e.target.error);
-        };
-      } catch (err) {
-        reject(err);
-      }
-    });
-    return dbPromise;
+  var SUPABASE_URL = "https://okxdeiaatifbqluivalv.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9reGRlaWFhdGlmYnFsdWl2YWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NDQxNjAsImV4cCI6MjEwODIyMDE2MH0.LlPvbEruGKm9Gz8YH3ea_9Fz2YxH34FQkUvOgGmK9So";
+  var IMAGE_BUCKET = "images";
+  var SIGNED_URL_TTL = 3600;
+  var LEGACY_DB = "metaluna";
+  var PATINA_KEY = "metaluna.surfacePatina";
+  var JPEG_QUALITY = 0.85;
+  var JPEG_MAX_EDGE = 1280;
+
+  var sb = null;
+  try {
+    if (window.supabase && typeof window.supabase.createClient === "function") {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (err) {
+    sb = null;
   }
 
-  function dbGetAll(storeName) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        try {
-          var tx = db.transaction(storeName, "readonly");
-          var store = tx.objectStore(storeName);
-          var req = store.getAll();
-          req.onsuccess = function () { resolve(req.result || []); };
-          req.onerror = function () { reject(req.error); };
-        } catch (err) {
-          reject(err);
-        }
-      });
-    }).catch(function (err) {
-      console.error("dbGetAll error:", storeName, err);
-      return [];
-    });
+  var currentUser = null;
+  var sessionsLoading = true;
+  var syncDepth = 0;
+
+  function syncStart() {
+    syncDepth += 1;
+    if (syncPill) syncPill.hidden = false;
   }
 
-  function dbPut(storeName, record) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        try {
-          var tx = db.transaction(storeName, "readwrite");
-          var store = tx.objectStore(storeName);
-          var req = store.put(record);
-          req.onsuccess = function () { resolve(record); };
-          req.onerror = function () { reject(req.error); };
-        } catch (err) {
-          reject(err);
-        }
-      });
-    }).catch(function (err) {
-      console.error("dbPut error:", storeName, err);
+  function syncStop() {
+    syncDepth = Math.max(0, syncDepth - 1);
+    if (syncDepth === 0 && syncPill) syncPill.hidden = true;
+  }
+
+  function toast(message, tone) {
+    if (!toastStack || !message) return;
+    var el = document.createElement("div");
+    el.className = "toast" + (tone === "error" ? " is-error" : "");
+    el.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' +
+      (tone === "error" ? "error" : "check_circle") + "</span><span>" + escapeHtml(message) + "</span>";
+    toastStack.appendChild(el);
+    setTimeout(function () {
+      el.classList.add("is-leaving");
+      setTimeout(function () { el.remove(); }, 340);
+    }, 5200);
+  }
+
+  function friendlyError(err, fallback) {
+    var msg = String((err && (err.message || err.error_description || err.msg)) || "");
+    if (/duplicate key|unique constraint/i.test(msg)) return "That name is already taken.";
+    if (/row-level security|permission denied/i.test(msg)) return "This account cannot reach that data.";
+    if (/failed to fetch|networkerror|network request/i.test(msg)) return "The studio could not reach its server.";
+    if (/jwt|token/i.test(msg)) return "The session expired. Sign in again.";
+    if (msg && msg.length < 130 && msg.indexOf("{") !== 0) return msg;
+    return fallback || "Something did not go through. Try again.";
+  }
+
+  function tracked(promiseLike, fallback) {
+    syncStart();
+    return Promise.resolve(promiseLike).then(function (value) {
+      syncStop();
+      if (value && value.error) throw value.error;
+      return value;
+    }, function (err) {
+      syncStop();
+      toast(friendlyError(err, fallback), "error");
       throw err;
     });
   }
 
-  function dbDelete(storeName, id) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
+  function requireUser() {
+    if (currentUser) return Promise.resolve(currentUser);
+    return Promise.reject(new Error("Please sign in to continue."));
+  }
+
+  /* --------------------------------------------------------------- images */
+
+  function compressToJpegBlob(source) {
+    return new Promise(function (resolve, reject) {
+      var isString = typeof source === "string";
+      var objectUrl = isString ? null : URL.createObjectURL(source);
+      var img = new Image();
+
+      function cleanup() {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      }
+
+      img.onerror = function () {
+        cleanup();
+        reject(new Error("That image could not be read."));
+      };
+
+      img.onload = function () {
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        if (!w || !h) {
+          cleanup();
+          reject(new Error("That image could not be read."));
+          return;
+        }
+        if (w > JPEG_MAX_EDGE || h > JPEG_MAX_EDGE) {
+          if (w >= h) {
+            h = Math.round((h * JPEG_MAX_EDGE) / w);
+            w = JPEG_MAX_EDGE;
+          } else {
+            w = Math.round((w * JPEG_MAX_EDGE) / h);
+            h = JPEG_MAX_EDGE;
+          }
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+
+        if (canvas.toBlob) {
+          canvas.toBlob(function (blob) {
+            cleanup();
+            if (blob) resolve(blob);
+            else reject(new Error("That image could not be compressed."));
+          }, "image/jpeg", JPEG_QUALITY);
+          return;
+        }
         try {
-          var tx = db.transaction(storeName, "readwrite");
-          var store = tx.objectStore(storeName);
-          var req = store.delete(id);
-          req.onsuccess = function () { resolve(true); };
-          req.onerror = function () { reject(req.error); };
+          var blob = dataURItoBlob(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
+          cleanup();
+          if (blob) resolve(blob);
+          else reject(new Error("That image could not be compressed."));
         } catch (err) {
+          cleanup();
           reject(err);
         }
+      };
+
+      img.src = objectUrl || source;
+    });
+  }
+
+  function storagePath() {
+    var id = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+    return currentUser.id + "/" + id + ".jpg";
+  }
+
+  function uploadJpeg(blob) {
+    var path = storagePath();
+    return tracked(
+      sb.storage.from(IMAGE_BUCKET).upload(path, blob, {
+        contentType: "image/jpeg",
+        cacheControl: "3600",
+        upsert: false
+      }),
+      "That image could not be uploaded."
+    ).then(function () {
+      return path;
+    });
+  }
+
+  function removeStored(paths) {
+    var list = (paths || []).filter(Boolean);
+    if (!list.length) return Promise.resolve();
+    return tracked(sb.storage.from(IMAGE_BUCKET).remove(list), "A stored file could not be removed.")
+      .then(function () {});
+  }
+
+  function signedLinks(paths) {
+    var unique = [];
+    (paths || []).forEach(function (path) {
+      if (path && unique.indexOf(path) === -1) unique.push(path);
+    });
+    if (!unique.length) return Promise.resolve({});
+    return tracked(
+      sb.storage.from(IMAGE_BUCKET).createSignedUrls(unique, SIGNED_URL_TTL),
+      "The stored images could not be opened."
+    ).then(function (res) {
+      var map = {};
+      (res.data || []).forEach(function (row) {
+        if (row && row.path && row.signedUrl && !row.error) map[row.path] = row.signedUrl;
       });
-    }).catch(function (err) {
-      console.error("dbDelete error:", storeName, id, err);
-      return false;
+      return map;
     });
   }
 
-  function dbDeleteSession(sessionId) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        try {
-          var tx = db.transaction(["sessions", "memory"], "readwrite");
-          var sessStore = tx.objectStore("sessions");
-          sessStore.delete(sessionId);
-          var memStore = tx.objectStore("memory");
-          var index = memStore.index("sessionId");
-          var req = index.getAllKeys(sessionId);
-          req.onsuccess = function () {
-            var keys = req.result || [];
-            keys.forEach(function (k) { memStore.delete(k); });
-          };
-          tx.oncomplete = function () { resolve(true); };
-          tx.onerror = function () { reject(tx.error); };
-        } catch (err) {
-          reject(err);
-        }
+  function downloadStored(url, label) {
+    if (!url) {
+      toast("That stored copy could not be opened.", "error");
+      return;
+    }
+    var name = (sanitizeName(label) || "metaluna-still").slice(0, 48);
+    tracked(fetch(url), "That stored copy could not be downloaded.").then(function (res) {
+      if (!res || !res.ok) throw new Error("That stored copy could not be downloaded.");
+      return res.blob();
+    }).then(function (blob) {
+      var objectUrl = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = name + ".jpg";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 4000);
+    }).catch(function () {});
+  }
+
+  /* --------------------------------------------------------------- rows */
+
+  function mapSessionRow(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now()
+    };
+  }
+
+  function mapMemoryRow(row) {
+    return {
+      id: row.id,
+      sessionId: row.session_id,
+      path: row.path,
+      prompt: row.prompt || "",
+      note: row.note || "",
+      createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now()
+    };
+  }
+
+  function mapStarRow(row) {
+    return {
+      id: row.id,
+      path: row.path,
+      prompt: row.prompt || "",
+      note: row.note || "",
+      createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now()
+    };
+  }
+
+  function fetchSessions() {
+    return requireUser().then(function (user) {
+      return tracked(
+        sb.from("sessions").select("id,name,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+        "Sessions could not be loaded."
+      );
+    }).then(function (res) {
+      return (res.data || []).map(mapSessionRow);
+    });
+  }
+
+  function createSessionRow(name) {
+    return requireUser().then(function (user) {
+      return tracked(
+        sb.from("sessions").insert({
+          user_id: user.id,
+          name: name,
+          created_at: new Date().toISOString()
+        }).select("id,name,created_at").single(),
+        "That session could not be created."
+      );
+    }).then(function (res) {
+      return mapSessionRow(res.data);
+    });
+  }
+
+  function fetchMemory(sessionId) {
+    return requireUser().then(function (user) {
+      return tracked(
+        sb.from("memory").select("id,session_id,path,prompt,note,created_at")
+          .eq("user_id", user.id).eq("session_id", sessionId)
+          .order("created_at", { ascending: false }),
+        "Session memory could not be loaded."
+      );
+    }).then(function (res) {
+      return (res.data || []).map(mapMemoryRow);
+    });
+  }
+
+  function fetchStars() {
+    return requireUser().then(function (user) {
+      return tracked(
+        sb.from("stars").select("id,path,prompt,note,created_at")
+          .eq("user_id", user.id).order("created_at", { ascending: false }),
+        "Starred images could not be loaded."
+      );
+    }).then(function (res) {
+      return (res.data || []).map(mapStarRow);
+    });
+  }
+
+  function fetchMemoryPaths(sessionId) {
+    return requireUser().then(function (user) {
+      return tracked(
+        sb.from("memory").select("path").eq("user_id", user.id).eq("session_id", sessionId),
+        "Session files could not be read."
+      );
+    }).then(function (res) {
+      return (res.data || []).map(function (row) { return row.path; }).filter(Boolean);
+    });
+  }
+
+  function saveMemoryImage(source, sessionId, prompt) {
+    return requireUser().then(function (user) {
+      return compressToJpegBlob(source).catch(function (err) {
+        toast("That image could not be prepared for upload.", "error");
+        throw err;
+      }).then(function (blob) {
+        return uploadJpeg(blob);
+      }).then(function (path) {
+        return tracked(
+          sb.from("memory").insert({
+            user_id: user.id,
+            session_id: sessionId,
+            path: path,
+            prompt: prompt || "",
+            note: "",
+            created_at: new Date().toISOString()
+          }).select("id").single(),
+          "That image could not be saved to memory."
+        ).then(function (res) {
+          return { id: res.data.id, path: path };
+        });
       });
-    }).catch(function (err) {
-      console.error("dbDeleteSession error:", sessionId, err);
-      return false;
     });
   }
 
-  function dbGetSessionMemory(sessionId) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        try {
-          var tx = db.transaction("memory", "readonly");
-          var store = tx.objectStore("memory");
-          var index = store.index("sessionId");
-          var req = index.getAll(sessionId);
-          req.onsuccess = function () {
-            var res = req.result || [];
-            res.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-            resolve(res);
-          };
-          req.onerror = function () { reject(req.error); };
-        } catch (err) {
-          reject(err);
-        }
+  function saveStarImage(source, prompt) {
+    return requireUser().then(function (user) {
+      return compressToJpegBlob(source).catch(function (err) {
+        toast("That image could not be prepared for upload.", "error");
+        throw err;
+      }).then(function (blob) {
+        return uploadJpeg(blob);
+      }).then(function (path) {
+        return tracked(
+          sb.from("stars").insert({
+            user_id: user.id,
+            path: path,
+            prompt: prompt || "",
+            note: "",
+            created_at: new Date().toISOString()
+          }).select("id").single(),
+          "That image could not be starred."
+        ).then(function (res) {
+          return { id: res.data.id, path: path };
+        });
       });
-    }).catch(function (err) {
-      console.error("dbGetSessionMemory error:", sessionId, err);
-      return [];
     });
   }
 
-  function dbGetStars() {
-    return dbGetAll("stars").then(function (res) {
-      res.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-      return res;
+  function deleteMemoryRecord(record) {
+    return tracked(sb.from("memory").delete().eq("id", record.id), "That image could not be removed.")
+      .then(function () { return removeStored([record.path]); });
+  }
+
+  function deleteStarRecord(record) {
+    return tracked(sb.from("stars").delete().eq("id", record.id), "That star could not be removed.")
+      .then(function () { return removeStored([record.path]); });
+  }
+
+  function deleteSessionRecord(sessionId) {
+    return fetchMemoryPaths(sessionId)
+      .then(function (paths) { return removeStored(paths); })
+      .then(function () {
+        return tracked(sb.from("memory").delete().eq("session_id", sessionId), "Session memory could not be cleared.");
+      })
+      .then(function () {
+        return tracked(sb.from("sessions").delete().eq("id", sessionId), "That session could not be deleted.");
+      });
+  }
+
+  /* --------------------------------------------------- attachments (visit) */
+
+  /* The studio keeps no attachment table, so patina add-ons live for the
+     current visit only; saved images themselves always go to the account. */
+  var attachmentStore = {};
+
+  function attachmentList(itemKey) {
+    return Promise.resolve((attachmentStore[itemKey] || []).slice());
+  }
+
+  function attachmentAdd(record) {
+    var list = attachmentStore[record.itemKey] || (attachmentStore[record.itemKey] = []);
+    list.push(record);
+    return Promise.resolve(record);
+  }
+
+  function attachmentRemove(id) {
+    Object.keys(attachmentStore).forEach(function (key) {
+      attachmentStore[key] = attachmentStore[key].filter(function (att) { return att.id !== id; });
+    });
+    return Promise.resolve(true);
+  }
+
+  /* ------------------------------------------------- legacy browser saves */
+
+  function readLegacyStore(db, name) {
+    return new Promise(function (resolve) {
+      try {
+        if (!db.objectStoreNames.contains(name)) { resolve([]); return; }
+        var req = db.transaction(name, "readonly").objectStore(name).getAll();
+        req.onsuccess = function () { resolve(req.result || []); };
+        req.onerror = function () { resolve([]); };
+      } catch (err) {
+        resolve([]);
+      }
     });
   }
 
-  function dbGetSetting(key) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve) {
+  function readLegacySaves() {
+    return new Promise(function (resolve) {
+      if (!window.indexedDB) { resolve(null); return; }
+
+      function readOpenDb() {
+        var req;
         try {
-          var tx = db.transaction("app_settings", "readonly");
-          var store = tx.objectStore("app_settings");
-          var req = store.get(key);
-          req.onsuccess = function () { resolve(req.result ? req.result.val : null); };
-          req.onerror = function () { resolve(null); };
+          req = indexedDB.open(LEGACY_DB);
         } catch (err) {
           resolve(null);
+          return;
         }
-      });
-    }).catch(function () { return null; });
-  }
+        req.onerror = function () { resolve(null); };
+        req.onupgradeneeded = function () {};
+        req.onsuccess = function () {
+          var db = req.result;
+          Promise.all([
+            readLegacyStore(db, "sessions"),
+            readLegacyStore(db, "memory"),
+            readLegacyStore(db, "stars")
+          ]).then(function (parts) {
+            try { db.close(); } catch (err) {}
+            var data = { sessions: parts[0] || [], memory: parts[1] || [], stars: parts[2] || [] };
+            var total = data.sessions.length + data.memory.length + data.stars.length;
+            resolve(total > 0 ? data : null);
+          });
+        };
+      }
 
-  function dbSetSetting(key, val) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        try {
-          var tx = db.transaction("app_settings", "readwrite");
-          var store = tx.objectStore("app_settings");
-          var req = store.put({ key: key, val: val });
-          req.onsuccess = function () { resolve(); };
-          req.onerror = function () { reject(req.error); };
-        } catch (err) {
-          reject(err);
-        }
-      });
-    });
-  }
-
-  function dbGetAttachments(itemKey) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve) {
-        try {
-          var tx = db.transaction("attachments", "readonly");
-          var store = tx.objectStore("attachments");
-          var idx = store.index("itemKey");
-          var req = idx.getAll(itemKey);
-          req.onsuccess = function () { resolve(req.result || []); };
-          req.onerror = function () { resolve([]); };
-        } catch (err) {
-          resolve([]);
-        }
-      });
-    }).catch(function () { return []; });
-  }
-
-  function dbPutAttachment(record) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        try {
-          var tx = db.transaction("attachments", "readwrite");
-          var store = tx.objectStore("attachments");
-          var req = store.put(record);
-          req.onsuccess = function () { resolve(record); };
-          req.onerror = function () { reject(req.error); };
-        } catch (err) {
-          reject(err);
-        }
-      });
-    });
-  }
-
-  function dbDeleteAttachment(id) {
-    return openDB().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        try {
-          var tx = db.transaction("attachments", "readwrite");
-          var store = tx.objectStore("attachments");
-          var req = store.delete(id);
-          req.onsuccess = function () { resolve(true); };
-          req.onerror = function () { reject(req.error); };
-        } catch (err) {
-          reject(err);
-        }
-      });
+      if (indexedDB.databases) {
+        indexedDB.databases().then(function (list) {
+          var found = (list || []).some(function (item) { return item && item.name === LEGACY_DB; });
+          if (found) readOpenDb();
+          else resolve(null);
+        }).catch(readOpenDb);
+      } else {
+        readOpenDb();
+      }
     });
   }
 
@@ -474,13 +707,8 @@
       activateSession(allSessions[0]);
       return Promise.resolve(allSessions[0]);
     }
-    var newSess = {
-      id: "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-      name: "Atelier 01",
-      createdAt: Date.now()
-    };
-    return dbPut("sessions", newSess).then(function () {
-      allSessions.push(newSess);
+    return createSessionRow("Atelier 01").then(function (newSess) {
+      allSessions.unshift(newSess);
       activateSession(newSess);
       return newSess;
     });
@@ -491,51 +719,36 @@
     var chain = Promise.resolve();
     files.forEach(function (file) {
       chain = chain.then(function () {
-        return downscaleImage(file, noticeEl).then(function (dataUrl) {
-          if (!dataUrl) return;
-          if (targetItemKey) {
-            var record = {
+        if (!file.type || file.type.indexOf("image/") !== 0) {
+          showAttNotice(noticeEl, "Image files only");
+          return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          showAttNotice(noticeEl, "File exceeds 8 MB");
+          return;
+        }
+        if (targetItemKey) {
+          return downscaleImage(file, noticeEl).then(function (dataUrl) {
+            if (!dataUrl) return;
+            return attachmentAdd({
               id: "att_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
               itemKey: targetItemKey,
               dataUrl: dataUrl,
               createdAt: Date.now()
-            };
-            return dbPutAttachment(record).catch(function () {
-              showAttNotice(noticeEl, "Quota exceeded");
             });
-          } else {
-            var blob = dataURItoBlob(dataUrl);
-            if (!blob) return;
-            var promptName = file.name ? file.name.replace(/\.[^/.]+$/, "") : "Attachment";
-            if (activeCollectionTab === "memory") {
-              return ensureActiveSession().then(function (sess) {
-                var memRec = {
-                  id: "mem_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-                  sessionId: sess.id,
-                  blob: blob,
-                  prompt: promptName,
-                  createdAt: Date.now(),
-                  selected: false,
-                  note: ""
-                };
-                return dbPut("memory", memRec);
-              }).catch(function () {
-                showAttNotice(noticeEl, "Storage failed");
-              });
-            } else {
-              var starRec = {
-                id: "star_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-                blob: blob,
-                prompt: promptName,
-                createdAt: Date.now(),
-                selected: false,
-                note: ""
-              };
-              return dbPut("stars", starRec).catch(function () {
-                showAttNotice(noticeEl, "Storage failed");
-              });
-            }
-          }
+          });
+        }
+
+        var promptName = file.name ? file.name.replace(/\.[^/.]+$/, "") : "Attachment";
+        if (activeCollectionTab === "memory") {
+          return ensureActiveSession().then(function (sess) {
+            return saveMemoryImage(file, sess.id, promptName);
+          }).catch(function () {
+            showAttNotice(noticeEl, "Upload failed");
+          });
+        }
+        return saveStarImage(file, promptName).catch(function () {
+          showAttNotice(noticeEl, "Upload failed");
         });
       });
     });
@@ -578,7 +791,7 @@
     barEl.appendChild(fileInput);
     barEl.appendChild(addBtn);
 
-    dbGetAttachments(itemKey).then(function (atts) {
+    attachmentList(itemKey).then(function (atts) {
       atts.forEach(function (att) {
         var wrap = document.createElement("div");
         wrap.className = "collection-thumb-wrap";
@@ -599,7 +812,7 @@
         del.innerHTML = "&times;";
         del.addEventListener("click", function (e) {
           e.stopPropagation();
-          dbDeleteAttachment(att.id).then(function () {
+          attachmentRemove(att.id).then(function () {
             renderItemAttachments(barEl, itemKey, noticeEl);
           });
         });
@@ -979,70 +1192,60 @@
   function handleAddToMemory(index) {
     if (!activeSession) return;
     var img = images[index];
-    if (!img || img.inMemory) return;
+    if (!img || img.inMemory || img.saving) return;
 
-    var blob = dataURItoBlob(img.src);
-    if (!blob) return;
-
-    var record = {
-      id: "mem_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-      sessionId: activeSession.id,
-      blob: blob,
-      prompt: img.prompt || (lastRequest ? lastRequest.prompt : promptEl.value) || "",
-      createdAt: Date.now(),
-      selected: false,
-      note: ""
-    };
-
-    dbPut("memory", record).then(function () {
+    var prompt = img.prompt || (lastRequest ? lastRequest.prompt : promptEl.value) || "";
+    img.saving = true;
+    saveMemoryImage(img.src, activeSession.id, prompt).then(function (saved) {
+      img.saving = false;
       img.inMemory = true;
-      img.memoryId = record.id;
+      img.memoryId = saved.id;
+      img.memoryPath = saved.path;
       updateTileActions(index);
       updateBadges();
       if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "memory") {
         renderCollection();
       }
+    }).catch(function () {
+      img.saving = false;
     });
   }
 
   function handleToggleStar(index) {
     var img = images[index];
-    if (!img) return;
+    if (!img || img.savingStar) return;
 
     if (img.isStarred) {
-      var starId = img.starId;
-      if (starId) {
-        dbDelete("stars", starId).then(function () {
-          img.isStarred = false;
-          img.starId = null;
-          updateTileActions(index);
-          updateBadges();
-          if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "starred") {
-            renderCollection();
-          }
-        });
-      }
-    } else {
-      var blob = dataURItoBlob(img.src);
-      if (!blob) return;
-
-      var record = {
-        id: "star_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-        blob: blob,
-        prompt: img.prompt || (lastRequest ? lastRequest.prompt : promptEl.value) || "",
-        createdAt: Date.now(),
-        selected: false,
-        note: ""
-      };
-
-      dbPut("stars", record).then(function () {
-        img.isStarred = true;
-        img.starId = record.id;
+      if (!img.starId) return;
+      img.savingStar = true;
+      deleteStarRecord({ id: img.starId, path: img.starPath }).then(function () {
+        img.savingStar = false;
+        img.isStarred = false;
+        img.starId = null;
+        img.starPath = null;
         updateTileActions(index);
         updateBadges();
         if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "starred") {
           renderCollection();
         }
+      }).catch(function () {
+        img.savingStar = false;
+      });
+    } else {
+      var prompt = img.prompt || (lastRequest ? lastRequest.prompt : promptEl.value) || "";
+      img.savingStar = true;
+      saveStarImage(img.src, prompt).then(function (saved) {
+        img.savingStar = false;
+        img.isStarred = true;
+        img.starId = saved.id;
+        img.starPath = saved.path;
+        updateTileActions(index);
+        updateBadges();
+        if (collectionPanel && !collectionPanel.hidden && activeCollectionTab === "starred") {
+          renderCollection();
+        }
+      }).catch(function () {
+        img.savingStar = false;
       });
     }
   }
@@ -1433,6 +1636,19 @@
   function renderGateSessions() {
     if (!gateList) return;
     gateList.innerHTML = "";
+
+    if (sessionsLoading) {
+      if (gateCountLabel) gateCountLabel.textContent = "loading";
+      if (gateEmptyNote) gateEmptyNote.hidden = true;
+      for (var s = 0; s < 3; s += 1) {
+        var skel = document.createElement("div");
+        skel.className = "skeleton skeleton-row";
+        skel.setAttribute("aria-hidden", "true");
+        gateList.appendChild(skel);
+      }
+      return;
+    }
+
     if (gateCountLabel) {
       gateCountLabel.textContent = allSessions.length + " recorded";
     }
@@ -1469,6 +1685,19 @@
   function renderSidebar() {
     if (!sidebarSessionsList) return;
     sidebarSessionsList.innerHTML = "";
+
+    if (sessionsLoading) {
+      var skelWrap = document.createElement("div");
+      skelWrap.className = "skeleton-wrap";
+      for (var s = 0; s < 4; s += 1) {
+        var skelRow = document.createElement("div");
+        skelRow.className = "skeleton skeleton-row";
+        skelRow.setAttribute("aria-hidden", "true");
+        skelWrap.appendChild(skelRow);
+      }
+      sidebarSessionsList.appendChild(skelWrap);
+      return;
+    }
 
     allSessions.forEach(function (sess) {
       var item = document.createElement("div");
@@ -1527,7 +1756,7 @@
   }
 
   function deleteSession(id) {
-    dbDeleteSession(id).then(function () {
+    deleteSessionRecord(id).then(function () {
       allSessions = allSessions.filter(function (s) { return s.id !== id; });
       deleteConfirmId = null;
       if (activeSession && activeSession.id === id) {
@@ -1540,6 +1769,9 @@
       } else {
         renderSidebar();
       }
+    }).catch(function () {
+      deleteConfirmId = null;
+      renderSidebar();
     });
   }
 
@@ -1581,213 +1813,208 @@
     }
   }
 
-  function renderCollection() {
+  function collectionSkeletons() {
     if (!collectionGrid) return;
     collectionGrid.innerHTML = "";
+    for (var i = 0; i < 4; i += 1) {
+      var card = document.createElement("div");
+      card.className = "skeleton skeleton-card";
+      card.setAttribute("aria-hidden", "true");
+      collectionGrid.appendChild(card);
+    }
+  }
+
+  function collectionEmptyBox(kind) {
+    var emptyBox = document.createElement("div");
+    emptyBox.className = "collection-empty-box";
+    emptyBox.innerHTML = '<p class="collection-empty-tip">' +
+      (kind === "memory" ? "No images saved to this session yet." : "No starred images saved yet.") + '</p>' +
+      '<button type="button" class="collection-att-add is-empty-add" aria-label="Add attachment"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add attachment</span></button>' +
+      '<p class="collection-paste-tip">or paste with Ctrl + V</p>' +
+      '<span class="collection-att-notice" role="status" hidden></span>';
+
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+    input.hidden = true;
+    emptyBox.appendChild(input);
+
+    var notice = emptyBox.querySelector(".collection-att-notice");
+    emptyBox.querySelector(".is-empty-add").addEventListener("click", function () {
+      input.click();
+    });
+    input.addEventListener("change", function () {
+      var files = Array.from(input.files || []);
+      input.value = "";
+      handleUploadFiles(files, null, notice);
+    });
+    return emptyBox;
+  }
+
+  function collectionFigure(item, url, kind) {
+    var fig = document.createElement("figure");
+    fig.className = "collection-item";
+
+    var shot = document.createElement("button");
+    shot.type = "button";
+    shot.className = "collection-shot";
+    shot.setAttribute("aria-label", "Open image fullscreen");
+    shot.innerHTML = '<img src="' + (url || "") + '" alt="' + escapeHtml(item.prompt) + '"/>' +
+      '<div class="collection-overlay"><p class="collection-prompt">' + escapeHtml(item.prompt) + '</p></div>';
+    shot.addEventListener("click", function () {
+      if (!url) {
+        toast("That stored copy could not be opened.", "error");
+        return;
+      }
+      openLightboxCustom(
+        url,
+        kind === "memory" ? "Memory · " + (activeSession ? activeSession.name : "") : "Starred still",
+        item.prompt
+      );
+    });
+    fig.appendChild(shot);
+
+    if (patinaEnabled) {
+      var attBar = document.createElement("div");
+      attBar.className = "collection-att-bar";
+      var attNotice = document.createElement("span");
+      attNotice.className = "collection-att-notice";
+      attNotice.setAttribute("role", "status");
+      attNotice.hidden = true;
+      fig.appendChild(attBar);
+      fig.appendChild(attNotice);
+      renderItemAttachments(attBar, kind + ":" + item.id, attNotice);
+    }
+
+    var foot = document.createElement("div");
+    foot.className = "collection-item-foot";
+    foot.innerHTML = '<span class="collection-item-time">' + formatSessionDate(item.createdAt) + '</span>' +
+      '<div class="collection-item-actions">' +
+        '<button type="button" class="collection-dl-btn" title="Download the stored copy"><span class="material-symbols-outlined" aria-hidden="true">download</span></button>' +
+        '<button type="button" class="collection-remove-btn" title="' +
+          (kind === "memory" ? "Remove from memory" : "Remove star") +
+        '"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>' +
+      '</div>';
+
+    foot.querySelector(".collection-dl-btn").addEventListener("click", function () {
+      downloadStored(url, item.prompt || kind);
+    });
+
+    foot.querySelector(".collection-remove-btn").addEventListener("click", function () {
+      var removal = kind === "memory" ? deleteMemoryRecord(item) : deleteStarRecord(item);
+      removal.then(function () {
+        images.forEach(function (img, idx) {
+          if (kind === "memory" && img.memoryId === item.id) {
+            img.inMemory = false;
+            img.memoryId = null;
+            img.memoryPath = null;
+            updateTileActions(idx);
+          }
+          if (kind === "starred" && img.starId === item.id) {
+            img.isStarred = false;
+            img.starId = null;
+            img.starPath = null;
+            updateTileActions(idx);
+          }
+        });
+        renderCollection();
+        updateBadges();
+      }).catch(function () {
+        renderCollection();
+      });
+    });
+
+    fig.appendChild(foot);
+    return fig;
+  }
+
+  function renderCollectionList(rows, kind) {
+    collectionGrid.innerHTML = "";
+
+    if (rows.length === 0) {
+      if (patinaEnabled) {
+        collectionGrid.appendChild(collectionEmptyBox(kind));
+      } else if (kind === "memory" && memoryEmpty) {
+        memoryEmpty.hidden = false;
+      } else if (kind === "starred" && starredEmpty) {
+        starredEmpty.hidden = false;
+      }
+      return;
+    }
+
+    return signedLinks(rows.map(function (row) { return row.path; })).then(function (links) {
+      collectionGrid.innerHTML = "";
+      rows.forEach(function (row) {
+        collectionGrid.appendChild(collectionFigure(row, links[row.path], kind));
+      });
+    });
+  }
+
+  function renderCollection() {
+    if (!collectionGrid) return;
+
+    if (memoryEmpty) {
+      memoryEmpty.textContent = "No images saved to this session's memory yet.";
+      memoryEmpty.hidden = true;
+    }
+    if (starredEmpty) {
+      starredEmpty.textContent = "No starred images saved yet.";
+      starredEmpty.hidden = true;
+    }
 
     if (activeCollectionTab === "memory") {
-      if (memoryEmpty) memoryEmpty.hidden = true;
-      if (starredEmpty) starredEmpty.hidden = true;
-
       if (!activeSession) {
         if (patinaEnabled) {
           ensureActiveSession().then(function () {
             renderCollection();
-          });
+          }).catch(function () {});
           return;
         }
+        collectionGrid.innerHTML = "";
         if (memoryEmpty) memoryEmpty.hidden = false;
         return;
       }
 
-      dbGetSessionMemory(activeSession.id).then(function (mems) {
+      collectionSkeletons();
+      fetchMemory(activeSession.id).then(function (mems) {
         if (memoryBadge) memoryBadge.textContent = String(mems.length);
-        if (mems.length === 0) {
-          if (patinaEnabled) {
-            if (memoryEmpty) memoryEmpty.hidden = true;
-            var emptyBox = document.createElement("div");
-            emptyBox.className = "collection-empty-box";
-            emptyBox.innerHTML = '<p class="collection-empty-tip">No images saved to this session yet.</p>' +
-              '<button type="button" class="collection-att-add is-empty-add" aria-label="Add attachment"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add attachment</span></button>' +
-              '<p class="collection-paste-tip">or paste with Ctrl + V</p>' +
-              '<span class="collection-att-notice" role="status" hidden></span>';
-            var emptyInput = document.createElement("input");
-            emptyInput.type = "file";
-            emptyInput.accept = "image/*";
-            emptyInput.multiple = true;
-            emptyInput.hidden = true;
-            emptyBox.appendChild(emptyInput);
-            var notice = emptyBox.querySelector(".collection-att-notice");
-            var btn = emptyBox.querySelector(".is-empty-add");
-            btn.addEventListener("click", function () { emptyInput.click(); });
-            emptyInput.addEventListener("change", function () {
-              var files = Array.from(emptyInput.files || []);
-              emptyInput.value = "";
-              handleUploadFiles(files, null, notice);
-            });
-            collectionGrid.appendChild(emptyBox);
-          } else {
-            if (memoryEmpty) memoryEmpty.hidden = false;
-          }
-          return;
+        return renderCollectionList(mems, "memory");
+      }).catch(function () {
+        collectionGrid.innerHTML = "";
+        if (memoryEmpty) {
+          memoryEmpty.textContent = "Session memory could not be loaded.";
+          memoryEmpty.hidden = false;
         }
-        if (memoryEmpty) memoryEmpty.hidden = true;
-
-        mems.forEach(function (item) {
-          var url = URL.createObjectURL(item.blob);
-          var fig = document.createElement("figure");
-          fig.className = "collection-item";
-
-          var shot = document.createElement("button");
-          shot.type = "button";
-          shot.className = "collection-shot";
-          shot.setAttribute("aria-label", "Open image fullscreen");
-          shot.innerHTML = '<img src="' + url + '" alt="' + escapeHtml(item.prompt) + '"/><div class="collection-overlay"><p class="collection-prompt">' + escapeHtml(item.prompt) + '</p></div>';
-          shot.addEventListener("click", function () {
-            openLightboxCustom(url, "Memory · " + (activeSession ? activeSession.name : ""), item.prompt);
-          });
-          fig.appendChild(shot);
-
-          if (patinaEnabled) {
-            var itemKey = "memory:" + item.id;
-            var attBar = document.createElement("div");
-            attBar.className = "collection-att-bar";
-            var attNotice = document.createElement("span");
-            attNotice.className = "collection-att-notice";
-            attNotice.setAttribute("role", "status");
-            attNotice.hidden = true;
-            fig.appendChild(attBar);
-            fig.appendChild(attNotice);
-            renderItemAttachments(attBar, itemKey, attNotice);
-          }
-
-          var foot = document.createElement("div");
-          foot.className = "collection-item-foot";
-          foot.innerHTML = '<span class="collection-item-time">' + formatSessionDate(item.createdAt) + '</span>' +
-            '<button type="button" class="collection-remove-btn" title="Remove from memory"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>';
-
-          foot.querySelector(".collection-remove-btn").addEventListener("click", function () {
-            dbDelete("memory", item.id).then(function () {
-              URL.revokeObjectURL(url);
-              images.forEach(function (img, idx) {
-                if (img.memoryId === item.id) {
-                  img.inMemory = false;
-                  img.memoryId = null;
-                  updateTileActions(idx);
-                }
-              });
-              renderCollection();
-              updateBadges();
-            });
-          });
-          fig.appendChild(foot);
-
-          collectionGrid.appendChild(fig);
-        });
       });
-    } else {
-      if (memoryEmpty) memoryEmpty.hidden = true;
-      if (starredEmpty) starredEmpty.hidden = true;
-
-      dbGetStars().then(function (stars) {
-        if (starredBadge) starredBadge.textContent = String(stars.length);
-        if (stars.length === 0) {
-          if (patinaEnabled) {
-            if (starredEmpty) starredEmpty.hidden = true;
-            var emptyBox = document.createElement("div");
-            emptyBox.className = "collection-empty-box";
-            emptyBox.innerHTML = '<p class="collection-empty-tip">No starred images saved yet.</p>' +
-              '<button type="button" class="collection-att-add is-empty-add" aria-label="Add attachment"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add attachment</span></button>' +
-              '<p class="collection-paste-tip">or paste with Ctrl + V</p>' +
-              '<span class="collection-att-notice" role="status" hidden></span>';
-            var emptyInput = document.createElement("input");
-            emptyInput.type = "file";
-            emptyInput.accept = "image/*";
-            emptyInput.multiple = true;
-            emptyInput.hidden = true;
-            emptyBox.appendChild(emptyInput);
-            var notice = emptyBox.querySelector(".collection-att-notice");
-            var btn = emptyBox.querySelector(".is-empty-add");
-            btn.addEventListener("click", function () { emptyInput.click(); });
-            emptyInput.addEventListener("change", function () {
-              var files = Array.from(emptyInput.files || []);
-              emptyInput.value = "";
-              handleUploadFiles(files, null, notice);
-            });
-            collectionGrid.appendChild(emptyBox);
-          } else {
-            if (starredEmpty) starredEmpty.hidden = false;
-          }
-          return;
-        }
-        if (starredEmpty) starredEmpty.hidden = true;
-
-        stars.forEach(function (item) {
-          var url = URL.createObjectURL(item.blob);
-          var fig = document.createElement("figure");
-          fig.className = "collection-item";
-
-          var shot = document.createElement("button");
-          shot.type = "button";
-          shot.className = "collection-shot";
-          shot.setAttribute("aria-label", "Open image fullscreen");
-          shot.innerHTML = '<img src="' + url + '" alt="' + escapeHtml(item.prompt) + '"/><div class="collection-overlay"><p class="collection-prompt">' + escapeHtml(item.prompt) + '</p></div>';
-          shot.addEventListener("click", function () {
-            openLightboxCustom(url, "Starred still", item.prompt);
-          });
-          fig.appendChild(shot);
-
-          if (patinaEnabled) {
-            var itemKey = "starred:" + item.id;
-            var attBar = document.createElement("div");
-            attBar.className = "collection-att-bar";
-            var attNotice = document.createElement("span");
-            attNotice.className = "collection-att-notice";
-            attNotice.setAttribute("role", "status");
-            attNotice.hidden = true;
-            fig.appendChild(attBar);
-            fig.appendChild(attNotice);
-            renderItemAttachments(attBar, itemKey, attNotice);
-          }
-
-          var foot = document.createElement("div");
-          foot.className = "collection-item-foot";
-          foot.innerHTML = '<span class="collection-item-time">' + formatSessionDate(item.createdAt) + '</span>' +
-            '<button type="button" class="collection-remove-btn" title="Remove star"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>';
-
-          foot.querySelector(".collection-remove-btn").addEventListener("click", function () {
-            dbDelete("stars", item.id).then(function () {
-              URL.revokeObjectURL(url);
-              images.forEach(function (img, idx) {
-                if (img.starId === item.id) {
-                  img.isStarred = false;
-                  img.starId = null;
-                  updateTileActions(idx);
-                }
-              });
-              renderCollection();
-              updateBadges();
-            });
-          });
-          fig.appendChild(foot);
-
-          collectionGrid.appendChild(fig);
-        });
-      });
+      return;
     }
+
+    collectionSkeletons();
+    fetchStars().then(function (stars) {
+      if (starredBadge) starredBadge.textContent = String(stars.length);
+      return renderCollectionList(stars, "starred");
+    }).catch(function () {
+      collectionGrid.innerHTML = "";
+      if (starredEmpty) {
+        starredEmpty.textContent = "Starred images could not be loaded.";
+        starredEmpty.hidden = false;
+      }
+    });
   }
 
   function updateBadges() {
     if (activeSession) {
-      dbGetSessionMemory(activeSession.id).then(function (mems) {
+      fetchMemory(activeSession.id).then(function (mems) {
         if (memoryBadge) memoryBadge.textContent = String(mems.length);
-      });
-    } else {
-      if (memoryBadge) memoryBadge.textContent = "0";
+      }).catch(function () {});
+    } else if (memoryBadge) {
+      memoryBadge.textContent = "0";
     }
-    dbGetStars().then(function (stars) {
+
+    fetchStars().then(function (stars) {
       if (starredBadge) starredBadge.textContent = String(stars.length);
-    });
+    }).catch(function () {});
   }
 
   /* ------------------------------------------------------------- settings */
@@ -1830,16 +2057,10 @@
       var res = validateSessionName(gateNameInput.value, allSessions);
       if (!res.valid) return;
 
-      var newSess = {
-        id: "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-        name: res.trimmed,
-        createdAt: Date.now()
-      };
-
-      dbPut("sessions", newSess).then(function () {
+      createSessionRow(res.trimmed).then(function (newSess) {
         allSessions.unshift(newSess);
         activateSession(newSess);
-      });
+      }).catch(function () {});
     });
   }
 
@@ -1885,17 +2106,11 @@
       var res = validateSessionName(sidebarNameInput.value, allSessions);
       if (!res.valid) return;
 
-      var newSess = {
-        id: "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-        name: res.trimmed,
-        createdAt: Date.now()
-      };
-
-      dbPut("sessions", newSess).then(function () {
+      createSessionRow(res.trimmed).then(function (newSess) {
         allSessions.unshift(newSess);
         sidebarNewForm.hidden = true;
         activateSession(newSess, true);
-      });
+      }).catch(function () {});
     });
   }
 
@@ -2027,17 +2242,15 @@
   }
 
   function initPatina() {
-    dbGetSetting("surfacePatina").then(function (val) {
-      patinaEnabled = !!val;
-      updatePatinaUI();
-    });
+    patinaEnabled = readStore(PATINA_KEY) === "1";
+    updatePatinaUI();
   }
 
   if (patinaToggle) {
     patinaToggle.addEventListener("click", function () {
       patinaEnabled = !patinaEnabled;
       updatePatinaUI();
-      dbSetSetting("surfacePatina", patinaEnabled).catch(function () {});
+      writeStore(PATINA_KEY, patinaEnabled ? "1" : "");
       if (collectionPanel && !collectionPanel.hidden) {
         renderCollection();
       }
@@ -2125,24 +2338,436 @@
     if (!document.hidden) checkHealth();
   });
 
-  /* Initial Session Load from IndexedDB */
-  dbGetAll("sessions").then(function (sessList) {
-    allSessions = (sessList || []).sort(function (a, b) {
-      return (b.createdAt || 0) - (a.createdAt || 0);
+  /* ----------------------------------------------------------------- auth */
+
+  var authMode = "signin";
+  var authBusy = false;
+  var loadedUserId = null;
+  var legacyData = null;
+  var migrating = false;
+
+  function showAuthError(message) {
+    if (!authError) return;
+    authError.textContent = message || "";
+    authError.hidden = !message;
+  }
+
+  function validateAuthForm() {
+    if (!authSubmit) return;
+    var email = authEmail ? authEmail.value.trim() : "";
+    var pass = authPassword ? authPassword.value : "";
+    var filled = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && pass.length >= 6;
+    authSubmit.disabled = authBusy || !filled;
+    authSubmit.classList.toggle("is-quiet", !authBusy && !filled);
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode === "signup" ? "signup" : "signin";
+    var signup = authMode === "signup";
+    if (authTitle) authTitle.textContent = signup ? "Open an account" : "Enter the studio";
+    if (authSubmitLabel) authSubmitLabel.textContent = signup ? "Create account" : "Sign in";
+    if (authSwitchPrompt) authSwitchPrompt.textContent = signup ? "Already have an account?" : "No account yet?";
+    if (authSwitch) {
+      authSwitch.textContent = signup ? "Sign in" : "Create account";
+      authSwitch.setAttribute("aria-pressed", signup ? "true" : "false");
+    }
+    if (authPassword) authPassword.setAttribute("autocomplete", signup ? "new-password" : "current-password");
+    showAuthError("");
+    validateAuthForm();
+  }
+
+  function calmAuthError(err) {
+    var msg = String((err && (err.message || err.error_description || err.msg)) || "");
+    if (/invalid login credentials|invalid_grant|invalid credentials/i.test(msg)) {
+      return "That email and password do not match an account.";
+    }
+    if (/email not confirmed/i.test(msg)) return "Confirm your email first, then sign in.";
+    if (/already registered|already exists|user already/i.test(msg)) {
+      return "That email already has an account. Sign in instead.";
+    }
+    if (/rate limit|too many/i.test(msg)) return "Too many attempts. Give it a minute.";
+    if (/failed to fetch|network/i.test(msg)) return "The studio could not reach its server.";
+    if (/password/i.test(msg) && /(least|short|weak|6|characters)/i.test(msg)) {
+      return "Use a password of at least 6 characters.";
+    }
+    if (/valid email/i.test(msg)) return "Enter a valid email address.";
+    if (msg && msg.length < 130 && msg.indexOf("{") !== 0) return msg;
+    return "That did not go through. Try again.";
+  }
+
+  function setAuthBusy(on) {
+    authBusy = on;
+    validateAuthForm();
+  }
+
+  function handleAuthSubmit(event) {
+    event.preventDefault();
+    if (authBusy) return;
+
+    var email = authEmail ? authEmail.value.trim() : "";
+    var pass = authPassword ? authPassword.value : "";
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showAuthError("Enter a valid email address.");
+      return;
+    }
+    if (pass.length < 6) {
+      showAuthError("Use a password of at least 6 characters.");
+      return;
+    }
+    if (!sb) {
+      showAuthError("The studio could not reach its server.");
+      return;
+    }
+
+    showAuthError("");
+    setAuthBusy(true);
+
+    var request = authMode === "signup"
+      ? sb.auth.signUp({ email: email, password: pass })
+      : sb.auth.signInWithPassword({ email: email, password: pass });
+
+    request.then(function (res) {
+      setAuthBusy(false);
+      if (res && res.error) {
+        showAuthError(calmAuthError(res.error));
+        return;
+      }
+      if (res && res.data && res.data.session && res.data.user) {
+        onSignedIn(res.data.user);
+        return;
+      }
+      if (authMode === "signup") {
+        if (authPassword) authPassword.value = "";
+        setAuthMode("signin");
+        showAuthError("Account created. Confirm the email we sent, then sign in.");
+        return;
+      }
+      showAuthError("Sign in did not complete. Try again.");
+    }).catch(function (err) {
+      setAuthBusy(false);
+      showAuthError(calmAuthError(err));
+    });
+  }
+
+  function showAuthGate(message) {
+    if (!authGate) return;
+    authGate.hidden = false;
+    document.body.classList.add("is-locked");
+    setAuthMode(authMode);
+    if (message) showAuthError(message);
+    if (authEmail && !authEmail.value) authEmail.focus();
+  }
+
+  function onSignedIn(user) {
+    currentUser = user || null;
+    if (authGate) authGate.hidden = true;
+    if (sidebarUserEmail) sidebarUserEmail.textContent = (currentUser && currentUser.email) || "Signed in";
+    if (authPassword) authPassword.value = "";
+    showAuthError("");
+    validateAuthForm();
+
+    if (loadedUserId && currentUser && loadedUserId === currentUser.id) return;
+    loadedUserId = currentUser ? currentUser.id : null;
+
+    refreshStudio();
+    probeLegacySaves();
+  }
+
+  function refreshStudio() {
+    sessionsLoading = true;
+    allSessions = [];
+    activeSession = null;
+    showSessionGate();
+    renderSidebar();
+    updateBadges();
+
+    fetchSessions().then(function (list) {
+      sessionsLoading = false;
+      allSessions = list;
+      renderGateSessions();
+      renderSidebar();
+      if (!allSessions.length) {
+        showSessionGate();
+        return;
+      }
+
+      var storedId = null;
+      try { storedId = localStorage.getItem(ACTIVE_SESSION_KEY); } catch (e) {}
+      var matched = null;
+      if (storedId) {
+        allSessions.forEach(function (sess) {
+          if (sess.id === storedId) matched = sess;
+        });
+      }
+      if (matched) activateSession(matched);
+      else showSessionGate();
+    }).catch(function () {
+      sessionsLoading = false;
+      renderGateSessions();
+      renderSidebar();
+      showSessionGate();
+    });
+  }
+
+  function resetSignedOutState() {
+    currentUser = null;
+    loadedUserId = null;
+    legacyData = null;
+    sessionsLoading = true;
+    allSessions = [];
+    activeSession = null;
+    deleteConfirmId = null;
+
+    if (activeSessionPill) activeSessionPill.textContent = "Session";
+    if (memoryBadge) memoryBadge.textContent = "0";
+    if (starredBadge) starredBadge.textContent = "0";
+    if (sidebarUserEmail) sidebarUserEmail.textContent = "\u00a0";
+    if (gateEl) gateEl.hidden = true;
+    if (sidebarEl) sidebarEl.classList.remove("is-open");
+    if (sidebarScrim) sidebarScrim.hidden = true;
+    if (collectionPanel) collectionPanel.hidden = true;
+    if (collectionScrim) collectionScrim.hidden = true;
+    if (settings) settings.hidden = true;
+    if (settingsScrim) settingsScrim.hidden = true;
+    if (migrateField) migrateField.hidden = true;
+    try { localStorage.removeItem(ACTIVE_SESSION_KEY); } catch (e) {}
+    requested = 0;
+    lastRequest = null;
+    resetStage();
+    showAuthGate();
+  }
+
+  function signOut() {
+    if (!sb) return;
+    syncStart();
+    sb.auth.signOut().then(function (res) {
+      syncStop();
+      if (res && res.error) {
+        toast(friendlyError(res.error, "Sign out did not complete."), "error");
+        return;
+      }
+      resetSignedOutState();
+    }).catch(function (err) {
+      syncStop();
+      toast(friendlyError(err, "Sign out did not complete."), "error");
+    });
+  }
+
+  function startAuth() {
+    if (!sb) {
+      showAuthGate("The studio could not reach its account service. Reload the page.");
+      if (authSubmit) authSubmit.disabled = true;
+      return;
+    }
+
+    sb.auth.getSession().then(function (res) {
+      var session = res && res.data ? res.data.session : null;
+      if (session && session.user) onSignedIn(session.user);
+      else showAuthGate();
+    }).catch(function () {
+      showAuthGate();
     });
 
-    var storedId = null;
-    try {
-      storedId = localStorage.getItem(ACTIVE_SESSION_KEY);
-    } catch (e) {}
+    sb.auth.onAuthStateChange(function (event, session) {
+      /* Keep data calls out of the auth callback so the client lock is free. */
+      setTimeout(function () {
+        if (event === "SIGNED_OUT") {
+          if (currentUser) resetSignedOutState();
+          else showAuthGate();
+          return;
+        }
+        if (event === "SIGNED_IN" && session && session.user) {
+          if (!currentUser || currentUser.id !== session.user.id) onSignedIn(session.user);
+        }
+      }, 0);
+    });
+  }
 
-    var matched = storedId ? allSessions.find(function (s) { return s.id === storedId; }) : null;
-    if (matched) {
-      activateSession(matched);
-    } else {
-      showSessionGate();
+  /* ------------------------------------------------------- local migration */
+
+  function migrationProgress(done, total) {
+    if (migrateNote) migrateNote.textContent = "Uploading " + done + " of " + total + "…";
+    if (migrateProgress) migrateProgress.hidden = false;
+    if (migrateBar) migrateBar.style.width = (total ? Math.round((done / total) * 100) : 0) + "%";
+  }
+
+  function probeLegacySaves() {
+    readLegacySaves().then(function (data) {
+      legacyData = data;
+      if (!migrateField) return;
+      if (!data) {
+        migrateField.hidden = true;
+        return;
+      }
+      var total = data.sessions.length + data.memory.length + data.stars.length;
+      migrateField.hidden = false;
+      if (migrateBtn) {
+        migrateBtn.hidden = false;
+        migrateBtn.disabled = false;
+        migrateBtn.textContent = "Upload my local saves";
+      }
+      if (migrateConfirm) migrateConfirm.hidden = true;
+      if (migrateProgress) migrateProgress.hidden = true;
+      if (migrateNote) {
+        migrateNote.textContent = total + (total === 1 ? " local save" : " local saves") + " found in this browser.";
+      }
+    }).catch(function () {
+      if (migrateField) migrateField.hidden = true;
+    });
+  }
+
+  function freeSessionName(raw, taken) {
+    var base = String(raw || "").trim() || "Imported atelier";
+    var candidate = base.slice(0, 40);
+    var n = 2;
+    while (taken[candidate.toLowerCase()]) {
+      var suffix = " (" + n + ")";
+      candidate = base.slice(0, 40 - suffix.length) + suffix;
+      n += 1;
     }
-  }).catch(function () {
-    showSessionGate();
-  });
+    taken[candidate.toLowerCase()] = true;
+    return candidate;
+  }
+
+  function runMigration() {
+    if (migrating || !legacyData || !currentUser) return;
+
+    migrating = true;
+    if (migrateBtn) {
+      migrateBtn.disabled = true;
+      migrateBtn.textContent = "Uploading…";
+    }
+    if (migrateConfirm) migrateConfirm.hidden = true;
+
+    var data = legacyData;
+    var total = data.sessions.length + data.memory.length + data.stars.length;
+    var done = 0;
+    var taken = {};
+    var idMap = {};
+
+    allSessions.forEach(function (sess) {
+      taken[String(sess.name || "").toLowerCase()] = true;
+    });
+
+    var bump = function () {
+      done += 1;
+      migrationProgress(done, total);
+    };
+
+    var chain = Promise.resolve();
+
+    data.sessions.forEach(function (old) {
+      chain = chain.then(function () {
+        return createSessionRow(freeSessionName(old.name, taken)).then(function (sess) {
+          idMap[old.id] = sess.id;
+          allSessions.unshift(sess);
+          bump();
+        }, bump);
+      });
+    });
+
+    data.memory.forEach(function (old) {
+      chain = chain.then(function () {
+        var sessionId = idMap[old.sessionId];
+        if (!sessionId || !old.blob) {
+          bump();
+          return;
+        }
+        return saveMemoryImage(old.blob, sessionId, old.prompt || "").then(bump, bump);
+      });
+    });
+
+    data.stars.forEach(function (old) {
+      chain = chain.then(function () {
+        if (!old.blob) {
+          bump();
+          return;
+        }
+        return saveStarImage(old.blob, old.prompt || "").then(bump, bump);
+      });
+    });
+
+    chain.then(function () {
+      migrating = false;
+      if (migrateProgress) migrateProgress.hidden = true;
+      if (migrateBtn) migrateBtn.hidden = true;
+      if (migrateNote) migrateNote.textContent = "Copied to your account.";
+      renderGateSessions();
+      renderSidebar();
+      updateBadges();
+      toast("Local saves copied to your account.");
+      if (migrateConfirm) {
+        migrateConfirm.hidden = false;
+        if (migrateConfirmNote) {
+          migrateConfirmNote.textContent = "Copied " + done + " of " + total + " saves. Clear the local copies stored in this browser?";
+        }
+      }
+    }).catch(function () {
+      migrating = false;
+      if (migrateProgress) migrateProgress.hidden = true;
+      if (migrateBtn) {
+        migrateBtn.disabled = false;
+        migrateBtn.textContent = "Upload my local saves";
+      }
+      if (migrateNote) migrateNote.textContent = "Some saves did not go through. Try again.";
+    });
+  }
+
+  function clearLocalSaves() {
+    try {
+      var req = indexedDB.deleteDatabase(LEGACY_DB);
+      req.onsuccess = function () {
+        legacyData = null;
+        if (migrateField) migrateField.hidden = true;
+        toast("Local copies cleared.");
+      };
+      req.onerror = function () {
+        toast("Could not clear the local copies.", "error");
+      };
+      req.onblocked = function () {
+        toast("Close other studio tabs, then clear again.", "error");
+      };
+    } catch (err) {
+      toast("Could not clear the local copies.", "error");
+    }
+  }
+
+  if (authForm) authForm.addEventListener("submit", handleAuthSubmit);
+
+  if (authEmail) {
+    authEmail.addEventListener("input", function () {
+      showAuthError("");
+      validateAuthForm();
+    });
+  }
+
+  if (authPassword) {
+    authPassword.addEventListener("input", function () {
+      showAuthError("");
+      validateAuthForm();
+    });
+  }
+
+  if (authSwitch) {
+    authSwitch.addEventListener("click", function () {
+      setAuthMode(authMode === "signin" ? "signup" : "signin");
+      if (authEmail) authEmail.focus();
+    });
+  }
+
+  if (signoutBtn) signoutBtn.addEventListener("click", signOut);
+
+  if (migrateBtn) migrateBtn.addEventListener("click", runMigration);
+
+  if (migrateClear) migrateClear.addEventListener("click", clearLocalSaves);
+
+  if (migrateKeep) {
+    migrateKeep.addEventListener("click", function () {
+      if (migrateConfirm) migrateConfirm.hidden = true;
+      if (migrateNote) migrateNote.textContent = "Local copies kept in this browser.";
+    });
+  }
+
+  startAuth();
 })();

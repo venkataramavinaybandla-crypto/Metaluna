@@ -2,7 +2,7 @@
 
 <html class="dark" lang="en"><head>
   <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Metaluna - Image Studio</title>
   <meta name="description" content="Metaluna is a small image studio: describe what you want to see, choose a ratio, and generate a numbered edition of stills one frame at a time."/>
 
@@ -31,9 +31,54 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "primary-fixed": "#e5deff", "background": "#141319", "surface-container": "#201f25", "tertiary": "#c2c6d8", "surface-dim": "#141319", "tertiary-container": "#a3a6b8", "on-secondary-fixed": "#001a43", "on-tertiary": "#2c303e", "error-container": "#93000a", "surface-container-low": "#1c1b21", "inverse-surface": "#e5e1ea", "outline-variant": "#484551", "on-surface": "#e5e1ea", "tertiary-fixed-dim": "#c2c6d8", "on-tertiary-container": "#383c4a", "surface-container-highest": "#35343b", "surface": "#141319", "secondary-fixed": "#d9e2ff", "on-error-container": "#ffdad6", "on-primary-fixed-variant": "#463b89", "on-primary-container": "#3c307e", "on-background": "#e5e1ea", "secondary": "#afc6ff", "on-tertiary-fixed-variant": "#424655", "surface-bright": "#3a383f", "tertiary-fixed": "#dfe2f5", "on-error": "#690005", "secondary-fixed-dim": "#afc6ff", "on-primary-fixed": "#1a055d", "primary-fixed-dim": "#c8bfff", "surface-container-lowest": "#0e0d13", "primary-container": "#a89cf2", "inverse-primary": "#5e53a3", "error": "#ffb4ab", "surface-container-high": "#2b2930", "on-tertiary-fixed": "#171b29", "primary": "#c8bfff", "on-secondary-fixed-variant": "#2e4677", "inverse-on-surface": "#312f36", "secondary-container": "#2e4677", "on-secondary": "#142f5f", "on-secondary-container": "#9db5ed", "on-surface-variant": "#c9c4d2", "surface-variant": "#35343b", "outline": "#928f9c", "surface-tint": "#c8bfff", "on-primary": "#302272" }, "borderRadius": { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" }, "spacing": { "space-xl": "2.5rem", "space-sm": "0.5rem", "margin-tablet": "2rem", "space-lg": "1.5rem", "gutter-desktop": "2rem", "margin": "1rem", "margin-desktop": "3.5rem", "space-xs": "0.25rem", "space-md": "1rem", "gutter": "1.5rem" }, "fontFamily": { "display-xl-mobile": ["Playfair Display"], "title-lg": ["Inter"], "label-caps": ["Inter"], "headline-md": ["Playfair Display"], "display-xl": ["Playfair Display"], "body-sm": ["Inter"], "label-sm": ["Inter"], "headline-lg-mobile": ["Playfair Display"], "headline-sm": ["Playfair Display"], "display-lg": ["Playfair Display"], "body-md": ["Inter"], "display-lg-mobile": ["Playfair Display"], "title-md": ["Inter"], "headline-lg": ["Playfair Display"], "body-lg": ["Inter"] }, "fontSize": { "display-xl-mobile": ["2.75rem", { "lineHeight": "3.25rem", "letterSpacing": "-0.01em", "fontWeight": "400" }], "title-lg": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-caps": ["0.6875rem", { "lineHeight": "1rem", "letterSpacing": "0.12em", "fontWeight": "600" }], "headline-md": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.005em", "fontWeight": "500" }], "display-xl": ["4.5rem", { "lineHeight": "5rem", "letterSpacing": "-0.02em", "fontWeight": "400" }], "body-sm": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0.005em", "fontWeight": "400" }], "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "500" }], "headline-lg-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "0em", "fontWeight": "400" }], "headline-sm": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "0em", "fontWeight": "500" }], "display-lg": ["3.5rem", { "lineHeight": "4rem", "letterSpacing": "-0.015em", "fontWeight": "400" }], "body-md": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "0em", "fontWeight": "400" }], "display-lg-mobile": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.01em", "fontWeight": "400" }], "title-md": ["1.125rem", { "lineHeight": "1.5rem", "letterSpacing": "0em", "fontWeight": "500" }], "headline-lg": ["2.5rem", { "lineHeight": "3rem", "letterSpacing": "-0.01em", "fontWeight": "400" }], "body-lg": ["1.125rem", { "lineHeight": "1.75rem", "letterSpacing": "0em", "fontWeight": "400" }] } } } };</script>
   <link rel="stylesheet" href="css/studio.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body class="studio-page bg-surface-container-lowest font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
+
+<div class="auth-gate" id="auth-gate" role="dialog" aria-modal="true" aria-labelledby="auth-title" hidden>
+  <div class="session-gate-aura" aria-hidden="true">
+    <span class="studio-aura-lilac"></span>
+    <span class="studio-aura-glaucous"></span>
+  </div>
+  <div class="auth-card">
+    <div class="auth-card-head">
+      <div class="session-gate-brand">
+        <img alt="" class="site-emblem" src="assets/images/metalune-emblem.png"/>
+        <span class="site-wordmark">Metaluna</span>
+      </div>
+      <div class="studio-aperture auth-aperture" aria-hidden="true">
+        <span class="studio-aperture-ring r1"></span>
+        <span class="studio-aperture-ring r2"></span>
+        <span class="studio-aperture-core"></span>
+      </div>
+    </div>
+    <p class="studio-eyebrow">Atelier key</p>
+    <h1 class="auth-title" id="auth-title">Enter the studio</h1>
+    <p class="auth-lede">Sessions, memory and stars are kept with your account, so the studio reads the same on every device.</p>
+
+    <form class="auth-form" id="auth-form" novalidate>
+      <div class="auth-field">
+        <label class="studio-label" for="auth-email">Email</label>
+        <input id="auth-email" class="studio-input" type="email" inputmode="email" autocomplete="email" spellcheck="false" autocapitalize="none" placeholder="you@example.com"/>
+      </div>
+      <div class="auth-field">
+        <label class="studio-label" for="auth-password">Password</label>
+        <input id="auth-password" class="studio-input" type="password" autocomplete="current-password" placeholder="At least 6 characters"/>
+      </div>
+      <p class="auth-error" id="auth-error" role="alert" hidden></p>
+      <button class="studio-generate auth-submit" id="auth-submit" type="submit" disabled>
+        <span class="studio-gen-label" id="auth-submit-label">Sign in</span>
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+      </button>
+    </form>
+
+    <p class="auth-switch-line">
+      <span id="auth-switch-prompt">No account yet?</span>
+      <button class="auth-switch" id="auth-switch" type="button" aria-pressed="false">Create account</button>
+    </p>
+  </div>
+</div>
 
 <div class="session-gate" id="session-gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
   <div class="session-gate-aura" aria-hidden="true">
@@ -106,6 +151,17 @@
     </div>
 
     <div class="studio-sidebar-list" id="sidebar-sessions-list" role="list"></div>
+
+    <div class="studio-sidebar-foot">
+      <div class="studio-sidebar-user">
+        <span class="material-symbols-outlined" aria-hidden="true">account_circle</span>
+        <span class="studio-sidebar-user-mail" id="sidebar-user-email">&nbsp;</span>
+      </div>
+      <button class="studio-sidebar-signout" id="signout-btn" type="button">
+        <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+        <span>Sign out</span>
+      </button>
+    </div>
   </aside>
 
   <div class="studio-viewport">
@@ -131,6 +187,10 @@
         <span class="site-tool-btn-text">Starred</span>
         <span class="site-tool-badge" id="starred-badge">0</span>
       </button>
+      <span class="sync-pill" id="sync-pill" role="status" aria-live="polite" hidden>
+        <i aria-hidden="true"></i>
+        <span>Syncing</span>
+      </span>
       <span class="foundry-pill" id="foundry-pill" data-state="checking" role="status" aria-live="polite">
         <i aria-hidden="true"></i>
         <span id="foundry-label">Checking foundry</span>
@@ -405,8 +465,26 @@
     <p class="settings-note">Fine-tune finish response</p>
   </div>
 
-  <p class="settings-foot">Both values stay in this browser.</p>
+  <div class="settings-field" id="migrate-field" hidden>
+    <label class="studio-label">Local saves</label>
+    <p class="settings-note" id="migrate-note">Saves from this browser can be copied to your account.</p>
+    <div class="settings-migrate-progress" id="migrate-progress" hidden>
+      <span class="settings-migrate-bar" id="migrate-bar" aria-hidden="true"></span>
+    </div>
+    <button class="settings-migrate-btn" id="migrate-btn" type="button">Upload my local saves</button>
+    <div class="settings-migrate-confirm" id="migrate-confirm" hidden>
+      <p class="settings-note" id="migrate-confirm-note">Uploaded. Clear the local copies stored in this browser?</p>
+      <div class="settings-migrate-actions">
+        <button class="settings-migrate-btn is-primary" id="migrate-clear" type="button">Clear local copies</button>
+        <button class="settings-migrate-btn" id="migrate-keep" type="button">Keep them</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="settings-foot">Backend values stay in this browser. Sessions, memory and stars travel with your account.</p>
 </aside>
+
+<div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
 
 <script src="js/studio.js"></script>
 </body>
